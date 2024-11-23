@@ -1,0 +1,78 @@
+const jwt = require('jsonwebtoken');
+
+class TokenUtils {
+    static generateToken(payload, expiresIn = '24h') {
+        try {
+            return jwt.sign(
+                payload,
+                process.env.JWT_SECRET,
+                { expiresIn }
+            );
+        } catch (error) {
+            throw new Error('Token generation failed');
+        }
+    }
+
+    static verifyToken(token) {
+        try {
+            return jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            if (error.name === 'TokenExpiredError') {
+                throw new Error('Token has expired');
+            }
+            throw new Error('Invalid token');
+        }
+    }
+
+    static decodeToken(token) {
+        try {
+            return jwt.decode(token);
+        } catch (error) {
+            throw new Error('Token decoding failed');
+        }
+    }
+
+    static generateVerificationToken(userId) {
+        return this.generateToken(
+            { userId, purpose: 'email_verification' },
+            '24h'
+        );
+    }
+
+    static generatePasswordResetToken(userId) {
+        return this.generateToken(
+            { userId, purpose: 'password_reset' },
+            '1h'
+        );
+    }
+
+    static generateRefreshToken(userId) {
+        return this.generateToken(
+            { userId, type: 'refresh' },
+            '7d'
+        );
+    }
+
+    static validateTokenPurpose(token, purpose) {
+        try {
+            const decoded = this.verifyToken(token);
+            if (decoded.purpose !== purpose) {
+                throw new Error('Invalid token purpose');
+            }
+            return decoded;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static extractUserIdFromToken(token) {
+        try {
+            const decoded = this.verifyToken(token);
+            return decoded.userId;
+        } catch (error) {
+            throw error;
+        }
+    }
+}
+
+module.exports = TokenUtils; 
