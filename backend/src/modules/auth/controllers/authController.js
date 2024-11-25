@@ -180,6 +180,14 @@ class AuthController {
         }
     }
 
+    static handleSocialAuthCallback(req, res) {
+        const redirectUrl = req.user?.redirectUrl || `${process.env.FRONTEND_URL}/login`;
+        const token = req.user?.token;
+
+        // Redirect with token as a query parameter
+        res.redirect(`${redirectUrl}?token=${token}`);
+    }
+
 }
 
 module.exports = AuthController; 

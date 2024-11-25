@@ -47,8 +47,15 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-    passport.authenticate('google', { session: false }),
-    AuthController.googleCallback
+    passport.authenticate('google', { 
+        failureRedirect: '/login',
+        session: false 
+    }),
+    (req, res) => {
+        // After successful authentication, redirect to frontend
+        const token = req.user.token;
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+    }
 );
 
 router.get('/facebook',
@@ -60,36 +67,23 @@ router.get('/facebook/callback',
     AuthController.facebookCallback
 );
 
-router.get('/github',
+router.get('/github', (req, res, next) => {
+    console.log('Starting GitHub auth...', {
+        clientID: process.env.GITHUB_CLIENT_ID,
+        callbackURL: `${process.env.BACKEND_URL}/auth/github/callback`
+    });
     passport.authenticate('github', { 
         scope: ['user:email'],
         session: false 
-    })
-);
+    })(req, res, next);
+});
 
-router.get('/github/callback',
-    passport.authenticate('github', { 
-        session: false,
-        failureRedirect: `${process.env.FRONTEND_URL}/login?error=github_auth_failed`
-    }),
+router.get('/auth/github/callback',
+    passport.authenticate('github', { session: false, failureRedirect: '/login' }),
     (req, res) => {
-        try {
-            // Generate tokens
-            const accessToken = TokenUtils.generateToken({
-                userId: req.user._id,
-                roles: req.user.roles
-            });
-            const refreshToken = TokenUtils.generateRefreshToken(req.user._id);
-
-            // Redirect to frontend with tokens
-            res.redirect(
-                `${process.env.FRONTEND_URL}/auth/github/callback?` +
-                `accessToken=${accessToken}&` +
-                `refreshToken=${refreshToken}`
-            );
-        } catch (error) {
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
-        }
+        // Redirect to frontend dashboard with token
+        const token = req.user.token;
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
     }
 );
 

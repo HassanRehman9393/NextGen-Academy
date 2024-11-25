@@ -1,14 +1,24 @@
 const jwt = require('jsonwebtoken');
 
 class TokenUtils {
-    static generateToken(payload, expiresIn = '24h') {
+    static generateToken(userData) {
         try {
+            if (!userData || !userData.userId) {
+                throw new Error('Invalid user data for token generation');
+            }
+
+            const payload = {
+                userId: userData.userId,
+                email: userData.email
+            };
+
             return jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn }
+                { expiresIn: '24h' }
             );
         } catch (error) {
+            console.error('Token generation error:', error);
             throw new Error('Token generation failed');
         }
     }

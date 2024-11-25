@@ -15,8 +15,46 @@ class SocialAuthService {
         passport.use(new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: "/auth/google/callback"
-        }, this.handleGoogleAuth));
+            callbackURL: "http://localhost:8081/api/auth/google/callback",
+            scope: ['profile', 'email']
+        }, async function(accessToken, refreshToken, profile, done) {
+            try {
+                console.log('Google Profile:', profile);
+                
+                const email = profile.emails[0].value;
+                let user = await User.findOne({ email });
+
+                if (!user) {
+                    user = await User.create({
+                        email: email,
+                        firstName: profile.name.givenName,
+                        lastName: profile.name.familyName,
+                        googleId: profile.id,
+                        isVerified: true,
+                        profilePicture: profile.photos?.[0]?.value,
+                        password: require('crypto').randomBytes(32).toString('hex') // Generate random password
+                    });
+                } else if (!user.googleId) {
+                    user.googleId = profile.id;
+                    await user.save();
+                }
+
+                // Generate JWT token
+                const token = TokenUtils.generateToken({
+                    userId: user._id,
+                    roles: user.roles
+                });
+
+                // Add token to user object
+                const userObject = user.toObject();
+                userObject.token = token;
+                
+                return done(null, userObject);
+            } catch (error) {
+                console.error('Google Auth Error:', error);
+                return done(error, null);
+            }
+        }));
 
         // Facebook Strategy
         passport.use(new FacebookStrategy({
@@ -30,7 +68,7 @@ class SocialAuthService {
         passport.use(new GitHubStrategy({
             clientID: process.env.GITHUB_CLIENT_ID,
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            callbackURL: `${process.env.BACKEND_URL}/api/auth/github/callback`,
+            callbackURL: "http://localhost:8081/api/auth/github/callback",
             scope: ['user:email']
         }, this.handleGithubAuth.bind(this)));
 
@@ -50,20 +88,41 @@ class SocialAuthService {
 
     async handleGoogleAuth(accessToken, refreshToken, profile, done) {
         try {
-            let user = await User.findOne({ email: profile.emails[0].value });
-
+            const email = profile.emails[0].value;
+            let user = await User.findOne({ email });
+            
             if (!user) {
+                // Create new user from Google profile
                 user = await User.create({
-                    email: profile.emails[0].value,
-                    firstName: profile.name.givenName,
-                    lastName: profile.name.familyName,
+                    email,
+                    firstName: profile.name.givenName || profile.displayName,
+                    lastName: profile.name.familyName || 'Unknown',
+                    password: require('crypto').randomBytes(32).toString('hex'),
+                    isVerified: true,
                     googleId: profile.id,
-                    verified: true
+                    profilePicture: profile.photos?.[0]?.value
                 });
             }
 
-            return done(null, user);
+            // Ensure user has an _id before generating token
+            if (!user._id) {
+                throw new Error('User ID not found');
+            }
+
+            // Generate token with proper user data
+            const token = TokenUtils.generateToken({
+                userId: user._id.toString(),
+                email: user.email
+            });
+
+            // Add token and redirect URL to user object
+            const userObject = user.toObject();
+            userObject.token = token;
+            userObject.redirectUrl = `${process.env.FRONTEND_URL}/dashboard`;
+
+            return done(null, userObject);
         } catch (error) {
+            console.error('Google Auth Error:', error);
             return done(error, null);
         }
     }
@@ -82,7 +141,12 @@ class SocialAuthService {
                 });
             }
 
-            return done(null, user);
+            const token = TokenUtils.generateToken(user);
+            const userObject = user.toObject();
+            userObject.token = token;
+            userObject.redirectUrl = `${process.env.FRONTEND_URL}/dashboard`;
+
+            return done(null, userObject);
         } catch (error) {
             return done(error, null);
         }
@@ -90,9 +154,6 @@ class SocialAuthService {
 
     async handleGithubAuth(accessToken, refreshToken, profile, done) {
         try {
-            console.log('GitHub Profile:', profile);
-            
-            // Get primary email from GitHub profile
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
             
             if (!email) {
@@ -102,24 +163,40 @@ class SocialAuthService {
             let user = await User.findOne({ email });
 
             if (!user) {
-                // Create new user if doesn't exist
+                // Split displayName into first and last name if possible
+                let firstName = profile.displayName || profile.username;
+                let lastName = '';
+                
+                if (profile.displayName && profile.displayName.includes(' ')) {
+                    const nameParts = profile.displayName.split(' ');
+                    firstName = nameParts[0];
+                    lastName = nameParts.slice(1).join(' ');
+                }
+
+                // Create new user with a generated password
                 user = await User.create({
                     email,
-                    firstName: profile.displayName || profile.username,
-                    lastName: '',
+                    firstName,
+                    lastName: lastName || 'Unknown', // Provide default lastName
                     githubId: profile.id,
+                    password: require('crypto').randomBytes(32).toString('hex'), // Generate random password
                     isVerified: true,
                     profilePicture: profile.photos?.[0]?.value
                 });
-            } else {
-                // Update existing user's GitHub ID if not set
-                if (!user.githubId) {
-                    user.githubId = profile.id;
-                    await user.save();
-                }
             }
 
-            return done(null, user);
+            // Generate JWT token
+            const token = TokenUtils.generateToken(user);
+            if (!token) {
+                throw new Error('Failed to generate token');
+            }
+
+            // Add token and redirect URL to user object
+            const userObject = user.toObject();
+            userObject.token = token;
+            userObject.redirectUrl = `${process.env.FRONTEND_URL}/dashboard`;
+            
+            return done(null, userObject);
         } catch (error) {
             console.error('GitHub Auth Error:', error);
             return done(error, null);
