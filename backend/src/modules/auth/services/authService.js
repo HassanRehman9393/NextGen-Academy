@@ -31,8 +31,11 @@ class AuthService {
                 throw new Error('User already exists');
             }
 
-            // Create new user
-            const user = new User(userData);
+            // Create new user with isVerified set to false
+            const user = new User({
+                ...userData,
+                isVerified: false
+            });
             await user.save();
 
             // Generate verification token
@@ -46,15 +49,13 @@ class AuthService {
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
             });
 
-            // Send welcome and verification emails
-            await this.sendWelcomeEmail(user);
+            // Send only verification email during registration
             await this.sendVerificationEmail(user, verificationToken);
 
-            // Generate access token
-            return TokenUtils.generateToken({
-                userId: user._id,
-                roles: user.roles
-            });
+            return {
+                message: 'Registration successful. Please check your email for verification.',
+                userId: user._id
+            };
         } catch (error) {
             throw error;
         }
@@ -86,7 +87,6 @@ class AuthService {
             });
         } catch (error) {
             console.error('Welcome email sending failed:', error);
-            // Don't throw error to prevent registration failure
         }
     }
 
@@ -106,30 +106,21 @@ class AuthService {
             });
         } catch (error) {
             console.error('Verification email sending failed:', error);
+            throw error;
         }
     }
 
     // Request password reset
     async requestPasswordReset(email) {
-        const user = await User.findOne({ email });
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        // Generate reset token
-        const resetToken = TokenUtils.generatePasswordResetToken(user._id);
-
-        // Save reset token
-        await Token.create({
-            userId: user._id,
-            token: resetToken,
-            type: 'reset',
-            expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-        });
-
-        // Send reset email
         try {
+            const user = await User.findOne({ email });
+            if (!user) {
+                return; // Don't reveal user existence
+            }
+
+            const resetToken = TokenUtils.generatePasswordResetToken(user._id);
             const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+            
             const template = EmailTemplates.getPasswordResetTemplate(
                 user.firstName,
                 resetLink
@@ -140,39 +131,78 @@ class AuthService {
                 to: user.email,
                 ...template
             });
+
+            // Save reset token
+            await Token.create({
+                userId: user._id,
+                token: resetToken,
+                type: 'reset',
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            });
+
+            return true;
         } catch (error) {
-            console.error('Password reset email sending failed:', error);
-            throw new Error('Password reset email sending failed');
+            console.error('Password reset request failed:', error);
+            throw error;
         }
     }
 
     // Reset password
     async resetPassword(token, newPassword) {
-        // Verify token and get user
-        const decoded = TokenUtils.validateTokenPurpose(token, 'password_reset');
-        const user = await User.findById(decoded.userId);
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        // Update password
-        user.password = newPassword;
-        await user.save();
-
-        // Delete used reset token
-        await Token.deleteOne({ token, type: 'reset' });
-
-        // Send password changed confirmation
         try {
-            const template = EmailTemplates.getPasswordChangedTemplate(user.firstName);
-            await this.transporter.sendMail({
-                from: process.env.SMTP_FROM,
-                to: user.email,
-                ...template
+            console.log('Starting password reset process');
+
+            // Verify token
+            let decoded;
+            try {
+                decoded = TokenUtils.verifyToken(token);
+                console.log('Token decoded:', { userId: decoded.userId, purpose: decoded.purpose });
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                throw new Error('Invalid or expired reset token');
+            }
+
+            // Validate decoded token
+            if (!decoded.userId || decoded.purpose !== 'password_reset') {
+                console.error('Invalid token purpose or missing userId:', decoded);
+                throw new Error('Invalid reset token');
+            }
+
+            // Find token in database
+            const tokenDoc = await Token.findOne({
+                token,
+                type: 'reset'
             });
+
+            if (!tokenDoc) {
+                console.error('Token not found in database');
+                throw new Error('Reset token has expired or already been used');
+            }
+
+            // Find user
+            const user = await User.findById(decoded.userId);
+            if (!user) {
+                console.error('User not found:', decoded.userId);
+                throw new Error('User not found');
+            }
+
+            // Hash new password
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+            // Update user password
+            user.password = hashedPassword;
+            await user.save();
+            console.log('Password updated successfully');
+
+            // Delete the used token
+            await Token.deleteOne({ _id: tokenDoc._id });
+            console.log('Reset token deleted');
+
+            return true;
         } catch (error) {
-            console.error('Password change confirmation email failed:', error);
+            console.error('Password reset failed:', error);
+            throw error;
         }
     }
 
@@ -219,7 +249,20 @@ class AuthService {
     async login(email, password) {
         try {
             // Validate credentials
-            const user = await this.validateCredentials(email, password);
+            const user = await User.findOne({ email }).select('+password');
+            if (!user) {
+                throw new Error('Invalid credentials');
+            }
+
+            const isMatch = await user.comparePassword(password);
+            if (!isMatch) {
+                throw new Error('Invalid credentials');
+            }
+
+            // Check if user is verified
+            if (!user.isVerified) {
+                throw new Error('Please verify your email before logging in');
+            }
 
             // Generate access token
             const accessToken = TokenUtils.generateToken({
@@ -238,7 +281,13 @@ class AuthService {
                 expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
             });
 
-            // Return user data and tokens
+            // Send welcome email after first successful login
+            if (!user.welcomeEmailSent) {
+                await this.sendWelcomeEmail(user);
+                user.welcomeEmailSent = true;
+                await user.save();
+            }
+
             return {
                 user: {
                     id: user._id,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from './LoadingSpinner';
@@ -6,6 +6,15 @@ import LoadingSpinner from './LoadingSpinner';
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
+
+    // Check for token in URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const token = params.get('token');
+        if (token) {
+            localStorage.setItem('token', token);
+        }
+    }, [location]);
 
     if (loading) {
         return (
@@ -15,11 +24,13 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
         );
     }
 
-    if (!user) {
+    // Check for token in localStorage
+    const token = localStorage.getItem('token');
+    if (!user && !token) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (requiredRoles.length > 0 && !requiredRoles.some(role => user.roles.includes(role))) {
+    if (requiredRoles.length > 0 && user && !requiredRoles.some(role => user.roles.includes(role))) {
         return <Navigate to="/unauthorized" replace />;
     }
 

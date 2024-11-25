@@ -13,7 +13,7 @@ const tokenSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['verification', 'reset', 'refresh']
+        enum: ['reset', 'verification', 'refresh']
     },
     expiresAt: {
         type: Date,

@@ -81,25 +81,69 @@ class AuthController {
     static async verifyEmail(req, res) {
         try {
             const { token } = req.params;
-            const decoded = TokenUtils.verifyToken(token);
             
-            const user = await User.findById(decoded.userId);
-            if (!user) {
-                throw new Error('User not found');
+            // First verify the token
+            let decoded;
+            try {
+                decoded = TokenUtils.verifyToken(token);
+                if (!decoded.userId || decoded.purpose !== 'verification') {
+                    throw new Error('Invalid verification token');
+                }
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid or expired verification link'
+                });
             }
 
+            // Find the token in the database
+            const tokenDoc = await Token.findOne({
+                token,
+                type: 'verification',
+                userId: decoded.userId
+            });
+
+            if (!tokenDoc) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Verification link has expired or already been used'
+                });
+            }
+
+            // Find and update the user
+            const user = await User.findById(decoded.userId);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            if (user.isVerified) {
+                await Token.deleteOne({ _id: tokenDoc._id });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email already verified. Please login.'
+                });
+            }
+
+            // Update user verification status
             user.isVerified = true;
-            user.verificationToken = undefined;
             await user.save();
 
-            res.status(200).json({
+            // Delete the verification token
+            await Token.deleteOne({ _id: tokenDoc._id });
+
+            return res.status(200).json({
                 success: true,
-                message: 'Email verified successfully'
+                message: 'Email verified successfully. You can now login.'
             });
         } catch (error) {
-            res.status(400).json({
+            console.error('Email verification error:', error);
+            return res.status(500).json({
                 success: false,
-                message: error.message
+                message: 'An error occurred during email verification'
             });
         }
     }
@@ -115,6 +159,7 @@ class AuthController {
                 message: 'Password reset instructions sent to your email'
             });
         } catch (error) {
+            console.error('Password reset request error:', error);
             res.status(400).json({
                 success: false,
                 message: error.message
@@ -126,26 +171,36 @@ class AuthController {
     static async resetPassword(req, res) {
         try {
             const { token } = req.params;
-            const { password } = req.body;
+            const { newPassword } = req.body;
 
-            const decoded = TokenUtils.validateTokenPurpose(token, 'password_reset');
-            const user = await User.findById(decoded.userId);
+            console.log('Reset password attempt:', { token, hasPassword: !!newPassword });
 
-            if (!user) {
-                throw new Error('User not found');
+            if (!token) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Reset token is required'
+                });
             }
 
-            user.password = password;
-            await user.save();
+            if (!newPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'New password is required'
+                });
+            }
+
+            // Verify token and update password
+            await AuthService.resetPassword(token, newPassword);
 
             res.status(200).json({
                 success: true,
                 message: 'Password reset successful'
             });
         } catch (error) {
+            console.error('Password reset error:', error);
             res.status(400).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Password reset failed'
             });
         }
     }

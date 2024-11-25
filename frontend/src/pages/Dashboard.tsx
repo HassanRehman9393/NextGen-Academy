@@ -5,44 +5,59 @@ import { useAuth } from '../auth/hooks/useAuth';
 const Dashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { setUser } = useAuth();
+    const { user, setUser } = useAuth();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const handleToken = async () => {
             try {
-                const params = new URLSearchParams(location.search);
-                const token = params.get('token');
+                // Check if we already have a user
+                if (user) {
+                    setLoading(false);
+                    return;
+                }
 
-                if (token) {
-                    // Store the token
-                    localStorage.setItem('token', token);
-                    
+                // Try to get token from URL or localStorage
+                const params = new URLSearchParams(location.search);
+                const urlToken = params.get('token');
+                const storedToken = localStorage.getItem('token');
+                const token = urlToken || storedToken;
+
+                if (!token) {
+                    navigate('/login');
+                    return;
+                }
+
+                // Store the token if it came from URL
+                if (urlToken) {
+                    localStorage.setItem('token', urlToken);
                     // Clear the URL parameters
                     navigate('/dashboard', { replace: true });
-                    
-                    // Fetch user profile with token
-                    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/profile`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error('Failed to fetch user profile');
-                    
-                    const userData = await response.json();
-                    setUser(userData.user);
+                }
+
+                // Fetch user profile with token
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user profile');
                 }
                 
+                const userData = await response.json();
+                setUser(userData.user);
                 setLoading(false);
             } catch (error) {
                 console.error('Dashboard error:', error);
+                localStorage.removeItem('token'); // Clear invalid token
                 navigate('/login');
             }
         };
 
         handleToken();
-    }, [location, navigate, setUser]);
+    }, [location, navigate, setUser, user]);
 
     if (loading) {
         return <div>Loading...</div>;

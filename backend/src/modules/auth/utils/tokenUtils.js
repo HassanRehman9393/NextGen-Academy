@@ -25,12 +25,10 @@ class TokenUtils {
 
     static verifyToken(token) {
         try {
-            return jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            return decoded;
         } catch (error) {
-            if (error.name === 'TokenExpiredError') {
-                throw new Error('Token has expired');
-            }
-            throw new Error('Invalid token');
+            throw new Error('Invalid or expired token');
         }
     }
 
@@ -43,16 +41,22 @@ class TokenUtils {
     }
 
     static generateVerificationToken(userId) {
-        return this.generateToken(
-            { userId, purpose: 'email_verification' },
-            '24h'
+        return jwt.sign(
+            { userId, purpose: 'verification' },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
         );
     }
 
     static generatePasswordResetToken(userId) {
-        return this.generateToken(
-            { userId, purpose: 'password_reset' },
-            '1h'
+        return jwt.sign(
+            { 
+                userId, 
+                purpose: 'password_reset',
+                timestamp: Date.now() // Add timestamp to ensure uniqueness
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
         );
     }
 
