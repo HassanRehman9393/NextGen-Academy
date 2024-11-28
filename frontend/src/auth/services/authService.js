@@ -80,7 +80,18 @@ const authService = {
     async login(credentials) {
         try {
             const response = await axiosInstance.post('/auth/login', credentials);
-            return response.data;
+            const { success, tokens, user } = response.data;
+            
+            // Check if the response format is as expected
+            if (success && tokens?.accessToken && tokens?.refreshToken) {
+                // Store tokens in localStorage
+                localStorage.setItem('accessToken', tokens.accessToken);
+                localStorage.setItem('refreshToken', tokens.refreshToken);
+
+                return { user, tokens };
+            } else {
+                throw new Error('Invalid response format');
+            }
         } catch (error) {
             throw error;
         }
@@ -116,24 +127,6 @@ const authService = {
     async verifyEmail(token) {
         try {
             const response = await axiosInstance.get(`/auth/verify-email/${token}`);
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    async getProfile() {
-        try {
-            const response = await axiosInstance.get('/auth/profile');
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    async updateProfile(userData) {
-        try {
-            const response = await axiosInstance.patch('/auth/profile', userData);
             return response.data;
         } catch (error) {
             throw error;

@@ -10,7 +10,7 @@ export const useAuth = () => {
     const handleLogin = useCallback(async (credentials) => {
         try {
             const user = await auth.login(credentials);
-            navigate('/dashboard');
+            navigate('/instructor/dashboard');
             return user;
         } catch (error) {
             throw error;

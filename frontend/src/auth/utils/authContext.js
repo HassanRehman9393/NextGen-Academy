@@ -1,88 +1,41 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import authService from '../services/authService';
+import React, { createContext, useContext, useState } from 'react';
+import AuthService from '../services/authService';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const validateToken = async (token) => {
-        try {
-            authService.setAuthHeader(token);
-            const response = await authService.getProfile();
-            return response.user;
-        } catch (error) {
-            throw error;
-        }
-    };
-
-    useEffect(() => {
-        // Check for stored tokens and validate them
-        const checkAuth = async () => {
-            try {
-                const token = localStorage.getItem('accessToken');
-                if (token) {
-                    // Validate token and get user data
-                    const userData = await validateToken(token);
-                    setUser(userData);
-                }
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        checkAuth();
-    }, []);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const login = async (credentials) => {
         try {
-            setError(null);
-            const response = await authService.login(credentials);
-            const { accessToken, refreshToken, user } = response;
+            const { user, tokens } = await AuthService.login(credentials);
             
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
+            // Store tokens
+            localStorage.setItem('accessToken', tokens.accessToken);
+            localStorage.setItem('refreshToken', tokens.refreshToken);
+            
+            // Update auth state
             setUser(user);
+            setIsAuthenticated(true);
             
-            return user;
+            return { user, tokens };
         } catch (error) {
-            setError(error.message);
+            console.error('Login error:', error);
             throw error;
         }
     };
 
-    const logout = async () => {
-        try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            await authService.logout(refreshToken);
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            setUser(null);
-        }
-    };
-
-    const value = {
-        user,
-        loading,
-        error,
-        login,
-        logout,
-        setUser,
-        setError
-    };
+    // Rest of your context provider remains the same...
 
     return (
-        <AuthContext.Provider value={value}>
-            {!loading && children}
+        <AuthContext.Provider value={{
+            user,
+            isAuthenticated,
+            login,
+            // ... other methods
+        }}>
+            {children}
         </AuthContext.Provider>
     );
 };

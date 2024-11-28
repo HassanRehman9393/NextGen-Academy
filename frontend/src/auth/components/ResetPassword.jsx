@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FaGraduationCap, FaLock } from 'react-icons/fa';
 import { resetPassword } from '../services/auth';
 
 const ResetPassword = () => {
@@ -30,7 +31,6 @@ const ResetPassword = () => {
                 return;
             }
 
-            console.log('Submitting password reset');
             const result = await resetPassword(token, newPassword);
             
             if (result.success) {
@@ -42,63 +42,76 @@ const ResetPassword = () => {
                 setError(result.message || 'Password reset failed');
             }
         } catch (error) {
-            console.error('Reset password error:', error);
             setError(error.message || 'Password reset failed');
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Reset Your Password
-                </h2>
-                
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <span className="block sm:inline">{error}</span>
-                    </div>
-                )}
+        <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500">
+            <div className="flex flex-col items-center justify-center min-h-screen px-4">
+                {/* Logo Section */}
+                <div className="flex items-center mb-8">
+                    <FaGraduationCap className="text-yellow-300 text-4xl animate-bounce" />
+                    <span className="text-white text-2xl font-bold ml-2">NextGen Academy</span>
+                </div>
 
-                {success ? (
-                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-                        Password reset successful! Redirecting to login...
-                    </div>
-                ) : (
-                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                        <div className="rounded-md shadow-sm -space-y-px">
-                            <div>
-                                <input
-                                    type="password"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                    placeholder="New Password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <input
-                                    type="password"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                    placeholder="Confirm New Password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                />
+                {/* Form Card */}
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-xl border border-white/20">
+                    <h2 className="text-3xl font-bold text-center text-white mb-8">
+                        Reset Your Password
+                    </h2>
+
+                    {error && (
+                        <div className="mb-6 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    {success ? (
+                        <div className="text-center">
+                            <div className="mb-6 p-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 text-sm">
+                                Password reset successful! Redirecting to login...
                             </div>
                         </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <div className="relative">
+                                    <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
+                                    <input
+                                        type="password"
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
+                                        placeholder="New Password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
 
-                        <div>
+                            <div>
+                                <div className="relative">
+                                    <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
+                                    <input
+                                        type="password"
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
+                                        placeholder="Confirm New Password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
                             <button
                                 type="submit"
-                                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg font-semibold hover:from-yellow-300 hover:to-orange-400 focus:outline-none focus:ring-2 focus:ring-yellow-300/50 transform hover:scale-105 transition duration-200"
                             >
                                 Reset Password
                             </button>
-                        </div>
-                    </form>
-                )}
+                        </form>
+                    )}
+                </div>
             </div>
         </div>
     );

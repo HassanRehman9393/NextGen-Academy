@@ -5,10 +5,11 @@ const AuthService = require('../services/authService');
 const SocialAuthService = require('../services/socialAuthService');
 const TokenUtils = require('../utils/tokenUtils');
 const EmailTemplates = require('../utils/emailTemplates');
+const jwt = require('jsonwebtoken');
 
 class AuthController {
     // Register new user
-    static async register(req, res) {
+    async register(req, res) {
         try {
             const { email, password, firstName, lastName } = req.body;
             
@@ -34,14 +35,24 @@ class AuthController {
     }
 
     // Login user
-    static async login(req, res) {
+    async login(req, res) {
         try {
             const { email, password } = req.body;
             const result = await AuthService.login(email, password);
 
+            const token = jwt.sign(
+                { 
+                    userId: result.user._id,
+                    roles: result.user.roles 
+                }, 
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
             res.status(200).json({
                 success: true,
-                ...result
+                ...result,
+                token: token
             });
         } catch (error) {
             res.status(401).json({
@@ -51,7 +62,7 @@ class AuthController {
         }
     }
 
-    static async logout(req, res) {
+    async logout(req, res) {
         try {
             const refreshToken = req.body.refreshToken;
             
@@ -78,7 +89,7 @@ class AuthController {
     }
 
     // Verify email
-    static async verifyEmail(req, res) {
+    async verifyEmail(req, res) {
         try {
             const { token } = req.params;
             
@@ -149,7 +160,7 @@ class AuthController {
     }
 
     // Request password reset
-    static async requestPasswordReset(req, res) {
+    async requestPasswordReset(req, res) {
         try {
             const { email } = req.body;
             await AuthService.requestPasswordReset(email);
@@ -168,7 +179,7 @@ class AuthController {
     }
 
     // Reset password
-    static async resetPassword(req, res) {
+    async resetPassword(req, res) {
         try {
             const { token } = req.params;
             const { newPassword } = req.body;
@@ -206,7 +217,7 @@ class AuthController {
     }
 
     // Google OAuth callback
-    static async googleCallback(req, res) {
+    async googleCallback(req, res) {
         try {
             const token = TokenUtils.generateToken({ userId: req.user._id });
             res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
@@ -216,7 +227,7 @@ class AuthController {
     }
 
     // Facebook OAuth callback
-    static async facebookCallback(req, res) {
+    async facebookCallback(req, res) {
         try {
             const token = TokenUtils.generateToken({ userId: req.user._id });
             res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
@@ -226,16 +237,17 @@ class AuthController {
     }
 
     // GitHub OAuth callback
-    static async githubCallback(req, res) {
+    async githubCallback(req, res) {
         try {
-            const token = TokenUtils.generateToken({ userId: req.user._id });
-            res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
+            const token = req.user.token;
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
         } catch (error) {
-            res.redirect(`${process.env.FRONTEND_URL}/auth/error`);
+            console.error('GitHub callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
         }
     }
 
-    static handleSocialAuthCallback(req, res) {
+    handleSocialAuthCallback(req, res) {
         const redirectUrl = req.user?.redirectUrl || `${process.env.FRONTEND_URL}/login`;
         const token = req.user?.token;
 
@@ -243,6 +255,34 @@ class AuthController {
         res.redirect(`${redirectUrl}?token=${token}`);
     }
 
+    getProfile(req, res) {
+        try {
+            // Implementation
+            res.json({ success: true, data: req.user });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // Missing methods that need to be added:
+    static async updateProfile(req, res) {
+        try {
+            // Implementation needed
+            throw new Error('Not implemented');
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async refreshToken(req, res) {
+        try {
+            // Implementation needed
+            throw new Error('Not implemented');
+        } catch (error) {
+            throw error;
+        }
+    }
+
 }
 
-module.exports = AuthController; 
+module.exports = new AuthController();

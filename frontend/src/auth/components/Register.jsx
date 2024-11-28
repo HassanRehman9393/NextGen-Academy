@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getValidationErrors, getPasswordStrength } from '../utils/validation';
+import { FaGraduationCap } from 'react-icons/fa';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -20,12 +21,8 @@ const Register = () => {
             ...prev,
             [name]: value
         }));
-        // Clear error when user starts typing
         if (errors[name]) {
-            setErrors(prev => ({
-                ...prev,
-                [name]: ''
-            }));
+            setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -54,142 +51,133 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Create your account
-                    </h2>
+        <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500">
+            <div className="flex flex-col items-center justify-center min-h-screen px-4">
+                {/* Logo Section */}
+                <div className="flex items-center mb-8">
+                    <FaGraduationCap className="text-yellow-300 text-4xl animate-bounce" />
+                    <span className="text-white text-2xl font-bold ml-2">NextGen Academy</span>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div className="grid grid-cols-2 gap-3">
+
+                {/* Form Card */}
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-xl border border-white/20">
+                    <h2 className="text-3xl font-bold text-center text-white mb-8">
+                        Create Your Account
+                    </h2>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* First Name */}
                             <div>
-                                <label htmlFor="firstName" className="sr-only">First Name</label>
                                 <input
-                                    id="firstName"
                                     name="firstName"
                                     type="text"
                                     required
-                                    className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                                        errors.firstName ? 'border-red-300' : 'border-gray-300'
-                                    } placeholder-gray-500 text-gray-900 rounded-tl-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                     placeholder="First Name"
                                     value={formData.firstName}
                                     onChange={handleChange}
                                 />
                                 {errors.firstName && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                                    <p className="mt-1 text-sm text-red-300">{errors.firstName}</p>
                                 )}
                             </div>
+
+                            {/* Last Name */}
                             <div>
-                                <label htmlFor="lastName" className="sr-only">Last Name</label>
                                 <input
-                                    id="lastName"
                                     name="lastName"
                                     type="text"
                                     required
-                                    className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                                        errors.lastName ? 'border-red-300' : 'border-gray-300'
-                                    } placeholder-gray-500 text-gray-900 rounded-tr-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                     placeholder="Last Name"
                                     value={formData.lastName}
                                     onChange={handleChange}
                                 />
                                 {errors.lastName && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                                    <p className="mt-1 text-sm text-red-300">{errors.lastName}</p>
                                 )}
                             </div>
                         </div>
+
+                        {/* Email */}
                         <div>
-                            <label htmlFor="email" className="sr-only">Email address</label>
                             <input
-                                id="email"
                                 name="email"
                                 type="email"
                                 required
-                                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                                    errors.email ? 'border-red-300' : 'border-gray-300'
-                                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                 placeholder="Email address"
                                 value={formData.email}
                                 onChange={handleChange}
                             />
                             {errors.email && (
-                                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                                <p className="mt-1 text-sm text-red-300">{errors.email}</p>
                             )}
                         </div>
+
+                        {/* Password */}
                         <div>
-                            <label htmlFor="password" className="sr-only">Password</label>
                             <input
-                                id="password"
                                 name="password"
                                 type="password"
                                 required
-                                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                                    errors.password ? 'border-red-300' : 'border-gray-300'
-                                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                 placeholder="Password"
                                 value={formData.password}
                                 onChange={handleChange}
                             />
                             {formData.password && (
-                                <div className="mt-1">
-                                    <div className="h-2 rounded-full bg-gray-200">
+                                <div className="mt-2">
+                                    <div className="h-1.5 rounded-full bg-white/10">
                                         <div
-                                            className={`h-full rounded-full ${getPasswordStrengthColor()}`}
+                                            className={`h-full rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
                                             style={{ width: `${(getPasswordStrength(formData.password) / 5) * 100}%` }}
                                         ></div>
                                     </div>
                                 </div>
                             )}
                             {errors.password && (
-                                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                                <p className="mt-1 text-sm text-red-300">{errors.password}</p>
                             )}
                         </div>
+
+                        {/* Confirm Password */}
                         <div>
-                            <label htmlFor="confirmPassword" className="sr-only">Confirm Password</label>
                             <input
-                                id="confirmPassword"
                                 name="confirmPassword"
                                 type="password"
                                 required
-                                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                                } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                 placeholder="Confirm Password"
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                             />
                             {errors.confirmPassword && (
-                                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                                <p className="mt-1 text-sm text-red-300">{errors.confirmPassword}</p>
                             )}
                         </div>
-                    </div>
 
-                    {errors.submit && (
-                        <div className="text-sm text-red-600 text-center">
-                            {errors.submit}
-                        </div>
-                    )}
+                        {errors.submit && (
+                            <div className="text-sm text-red-300 text-center">
+                                {errors.submit}
+                            </div>
+                        )}
 
-                    <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg font-semibold hover:from-yellow-300 hover:to-orange-400 focus:outline-none focus:ring-2 focus:ring-yellow-300/50 transform hover:scale-105 transition duration-200"
                         >
-                            Register
+                            Create Account
                         </button>
-                    </div>
-                </form>
+                    </form>
 
-                <div className="text-center">
-                    <p className="text-sm text-gray-600">
+                    <div className="mt-6 text-center text-white/80">
                         Already have an account?{' '}
-                        <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                        <Link to="/login" className="text-yellow-300 hover:text-yellow-200 font-semibold">
                             Sign in
                         </Link>
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>
