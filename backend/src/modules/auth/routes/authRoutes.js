@@ -6,105 +6,89 @@ const AuthMiddleware = require('../middleware/authMiddleware');
 const ValidationMiddleware = require('../middleware/validationMiddleware');
 const TokenUtils = require('../utils/tokenUtils');
 
+// Create an instance of AuthController
+const authController = new AuthController();
+
 // Registration
 router.post('/register',
     ValidationMiddleware.sanitizeInput,
     ValidationMiddleware.validateRegistration,
-    AuthController.register
+    (req, res) => authController.register(req, res)
 );
 
 // Login
 router.post('/login',
     ValidationMiddleware.sanitizeInput,
     ValidationMiddleware.validateLogin,
-    AuthController.login
+    (req, res) => authController.login(req, res)
 );
 
 // Logout
 router.post('/logout',
     AuthMiddleware.authenticateToken,
-    AuthController.logout
+    (req, res) => authController.logout(req, res)
 );
 
 // Email verification
-router.get('/verify-email/:token', AuthController.verifyEmail);
+router.get('/verify-email/:token', (req, res) => authController.verifyEmail(req, res));
 
 // Password reset
 router.post('/forgot-password',
     ValidationMiddleware.sanitizeInput,
-    AuthController.requestPasswordReset
+    (req, res) => authController.requestPasswordReset(req, res)
 );
 
 router.post('/reset-password/:token',
     ValidationMiddleware.sanitizeInput,
     ValidationMiddleware.validatePasswordReset,
-    AuthController.resetPassword
+    (req, res) => authController.resetPassword(req, res)
 );
 
 // Social authentication routes
-// Google authentication route
-router.get('/google', (req, res, next) => {
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
-});
+// Google authentication
+router.get('/google', passport.authenticate('google', { 
+    scope: ['profile', 'email'] 
+}));
 
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login', session: false }),
+    passport.authenticate('google', { 
+        failureRedirect: '/login', 
+        session: false 
+    }),
     (req, res) => {
         const token = req.user?.token;
         res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
     }
 );
 
-// Facebook authentication route
-router.get('/facebook', (req, res, next) => {
-    passport.authenticate('facebook', { scope: ['email'] })(req, res, next);
-});
+// Facebook authentication
+router.get('/facebook', passport.authenticate('facebook', { 
+    scope: ['email'] 
+}));
 
 router.get('/facebook/callback',
-    passport.authenticate('facebook', { failureRedirect: '/login', session: false }),
-    AuthController.facebookCallback
+    passport.authenticate('facebook', { 
+        failureRedirect: '/login', 
+        session: false 
+    }),
+    (req, res) => authController.facebookCallback(req, res)
 );
 
-
-router.get('/github', (req, res, next) => {
-    console.log('Starting GitHub auth...', {
-        clientID: process.env.GITHUB_CLIENT_ID,
-        callbackURL: `${process.env.BACKEND_URL}/api/auth/github/callback`
-    });
-    passport.authenticate('github', { 
-        scope: ['user:email'],
-        session: false 
-    })(req, res, next);
-});
+// GitHub authentication
+router.get('/github', passport.authenticate('github', { 
+    scope: ['user:email'],
+    session: false 
+}));
 
 router.get('/github/callback',
     passport.authenticate('github', { 
         session: false, 
         failureRedirect: '/login' 
     }),
-    (req, res) => {
-        try {
-            const token = req.user.token;
-            res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
-        } catch (error) {
-            console.error('GitHub callback error:', error);
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
-        }
-    }
+    (req, res) => authController.githubCallback(req, res)
 );
 
-// Token management
-router.post('/refresh-token',
-    ValidationMiddleware.sanitizeInput,
-    async (req, res) => {
-        try {
-            const result = await AuthController.refreshToken(req, res);
-            res.json(result);
-        } catch (error) {
-            res.status(500).json({ message: 'Error refreshing token', error: error.message });
-        }
-    }
-);
-
+// Token refresh
+router.post('/refresh-token', (req, res) => authController.refreshToken(req, res));
 
 module.exports = router; 

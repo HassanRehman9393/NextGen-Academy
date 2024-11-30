@@ -1,143 +1,67 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-const axiosInstance = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    withCredentials: true
-});
-
-// Add request interceptor for debugging
-axiosInstance.interceptors.request.use(
-    (config) => {
-        console.log('Making request to:', config.url);
-        return config;
-    },
-    (error) => {
-        console.error('Request error:', error);
-        return Promise.reject(error);
-    }
-);
-
-// Update response interceptor
-axiosInstance.interceptors.response.use(
-    (response) => {
-        console.log('Response received:', response.data);
-        return response;
-    },
-    async (error) => {
-        console.error('Response error:', error);
-
-        if (!error.response) {
-            // Network error
-            console.error('Network error details:', error);
-            throw new Error('Network error - please check your connection and try again');
-        }
-
-        const originalRequest = error.config;
-
-        if (error.response.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                const refreshToken = localStorage.getItem('refreshToken');
-                const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-                    refreshToken
-                });
-
-                const { accessToken } = response.data;
-                localStorage.setItem('accessToken', accessToken);
-
-                originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-                return axiosInstance(originalRequest);
-            } catch (refreshError) {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login';
-                throw refreshError;
-            }
-        }
-
-        // Extract error message from response if available
-        const errorMessage = error.response?.data?.message || error.message;
-        throw new Error(errorMessage);
-    }
-);
+const API_URL = process.env.REACT_APP_API_URL;
 
 const authService = {
-    async register(userData) {
+    login: async (credentials) => {
         try {
-            const response = await axiosInstance.post('/auth/register', userData);
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
-    },
+            const response = await axios.post(`${API_URL}/auth/login`, credentials);
+            console.log('Auth service response:', response.data);
 
-    async login(credentials) {
-        try {
-            const response = await axiosInstance.post('/auth/login', credentials);
-            const { success, tokens, user } = response.data;
-            
-            // Check if the response format is as expected
-            if (success && tokens?.accessToken && tokens?.refreshToken) {
-                // Store tokens in localStorage
-                localStorage.setItem('accessToken', tokens.accessToken);
-                localStorage.setItem('refreshToken', tokens.refreshToken);
-
-                return { user, tokens };
-            } else {
-                throw new Error('Invalid response format');
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.message || 'Login failed');
             }
-        } catch (error) {
-            throw error;
-        }
-    },
 
-    async logout(refreshToken) {
-        try {
-            const response = await axiosInstance.post('/auth/logout', { refreshToken });
+            if (!response.data.data?.token || !response.data.data?.user) {
+                throw new Error('Invalid response from server');
+            }
+
             return response.data;
         } catch (error) {
-            throw error;
+            console.error('Auth service error:', error);
+            throw new Error(error.response?.data?.message || 'Failed to login');
         }
     },
 
-    async forgotPassword(email) {
+    register: async (userData) => {
         try {
-            const response = await axiosInstance.post('/auth/forgot-password', { email });
+            const response = await axios.post(`${API_URL}/auth/register`, userData);
+            
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.message || 'Registration failed');
+            }
+
             return response.data;
         } catch (error) {
-            throw error;
+            console.error('Registration error:', error);
+            throw new Error(error.response?.data?.message || 'Failed to register');
         }
     },
 
-    async resetPassword(token, password) {
+    forgotPassword: async (email) => {
         try {
-            const response = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
+            const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
             return response.data;
         } catch (error) {
-            throw error;
+            throw new Error(error.response?.data?.message || 'Failed to process request');
         }
     },
 
-    async verifyEmail(token) {
+    resetPassword: async (token, password) => {
         try {
-            const response = await axiosInstance.get(`/auth/verify-email/${token}`);
+            const response = await axios.post(`${API_URL}/auth/reset-password/${token}`, { password });
             return response.data;
         } catch (error) {
-            throw error;
+            throw new Error(error.response?.data?.message || 'Failed to reset password');
         }
     },
 
-    setAuthHeader(token) {
-        if (token) {
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        } else {
-            delete axiosInstance.defaults.headers.common['Authorization'];
+    verifyEmail: async (token) => {
+        try {
+            const response = await axios.get(`${API_URL}/auth/verify-email/${token}`);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Failed to verify email');
         }
     }
 };

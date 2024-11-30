@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link} from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaGraduationCap, FaGoogle, FaGithub } from 'react-icons/fa';
-import axios from 'axios';
+import authService from '../services/authService';
 
 const Login = () => {
-    const navigate = useNavigate();
     const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
@@ -14,23 +13,26 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, {
-                email: formData.email,
-                password: formData.password
-            });
-
-            const { token, user } = response.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            login(user);
+            const response = await authService.login(formData);
+            console.log('Login response:', response);
+            
+            await login(response);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to login');
+            console.error('Login error:', err);
+            setError(err.message || 'Failed to login');
         } finally {
             setLoading(false);
         }
@@ -69,8 +71,9 @@ const Login = () => {
                                 required
                                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                 placeholder="Email address"
+                                name="email"
                                 value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                onChange={handleChange}
                             />
                         </div>
 
@@ -81,8 +84,9 @@ const Login = () => {
                                 required
                                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50 focus:border-yellow-300 focus:ring-2 focus:ring-yellow-300/50 transition duration-200"
                                 placeholder="Password"
+                                name="password"
                                 value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                onChange={handleChange}
                             />
                         </div>
 

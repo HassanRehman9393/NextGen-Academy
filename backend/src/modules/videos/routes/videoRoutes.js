@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const VideoController = require('../controllers/videoController');
-const { authenticateToken } = require('../middleware/authMiddleware');
-const { requireInstructor } = require('../middleware/roleMiddleware');
+const { authenticateToken } = require('../../../middleware/authMiddleware');
+const { requireInstructor } = require('../../auth/middleware/roleMiddleware');
 
 // Debug middleware
 router.use((req, res, next) => {

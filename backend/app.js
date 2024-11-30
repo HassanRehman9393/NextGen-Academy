@@ -7,6 +7,8 @@ const passport = require('passport');
 const connectDB = require('./src/config/database');
 const cors = require('cors');
 require('dotenv').config();
+const { quizRoutes } = require('./src/modules/quizzes');
+const { authenticateToken } = require('./src/middleware/authMiddleware');
 
 // Import routes
 const authRouter = require('./src/modules/auth/routes/authRoutes');
@@ -33,9 +35,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Initialize Passport
 app.use(passport.initialize());
 
+// Protected routes
+const protectedRoutes = ['/api/videos', '/api/quizzes'];
+
+// Apply authentication to protected routes
+protectedRoutes.forEach(route => {
+    app.use(route, authenticateToken);
+});
+
 // API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/videos', videoRouter);
+app.use('/api/quizzes', quizRoutes);
 
 // Handle 404s
 app.use((req, res, next) => {

@@ -18,12 +18,10 @@ const tokenSchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: 86400 // Automatically delete documents after 24 hours
     }
-});
+}, { timestamps: true });
+
+// Add index for expiration
+tokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Token', tokenSchema); 

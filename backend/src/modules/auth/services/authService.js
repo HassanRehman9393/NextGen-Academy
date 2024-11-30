@@ -248,58 +248,24 @@ class AuthService {
     // Add this new login method
     async login(email, password) {
         try {
-            // Validate credentials
             const user = await User.findOne({ email }).select('+password');
             if (!user) {
-                throw new Error('Invalid credentials');
+                throw new Error('User not found');
             }
 
             const isMatch = await user.comparePassword(password);
             if (!isMatch) {
-                throw new Error('Invalid credentials');
+                throw new Error('Invalid password');
             }
 
-            // Check if user is verified
-            if (!user.isVerified) {
-                throw new Error('Please verify your email before logging in');
-            }
-
-            // Generate access token
-            const accessToken = TokenUtils.generateToken({
-                userId: user._id,
-                roles: user.roles
-            });
-
-            // Generate refresh token
-            const refreshToken = TokenUtils.generateRefreshToken(user._id);
-
-            // Save refresh token
-            await Token.create({
-                userId: user._id,
-                token: refreshToken,
-                type: 'refresh',
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-            });
-
-            // Send welcome email after first successful login
-            if (!user.welcomeEmailSent) {
-                await this.sendWelcomeEmail(user);
-                user.welcomeEmailSent = true;
-                await user.save();
-            }
-
+            // Make sure we return the complete user object
             return {
                 user: {
-                    id: user._id,
+                    _id: user._id,
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    roles: user.roles,
-                    isVerified: user.isVerified
-                },
-                tokens: {
-                    accessToken,
-                    refreshToken
+                    roles: user.roles
                 }
             };
         } catch (error) {

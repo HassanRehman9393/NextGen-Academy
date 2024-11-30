@@ -1,7 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/context/AuthContext';
-import PrivateRoute from './auth/components/PrivateRoute';
 import InstructorRoute from './auth/components/InstructorRoute';
 
 // Public Components
@@ -12,9 +11,15 @@ import ForgotPassword from './auth/components/ForgotPassword';
 import ResetPassword from './auth/components/ResetPassword';
 import VerifyEmail from './auth/components/VerifyEmail';
 
+// Instructor Components
+import InstructorDashboard from './modules/instructor/components/InstructorDashboard';
+
 // Video Management Components
 import VideoDashboard from './modules/videoManagement/components/VideoDashboard';
 import { VideoProvider } from './modules/videoManagement/context/VideoContext';
+
+// Quiz Management Components
+import QuizRoutes from './modules/quizManagement/routes/QuizRoutes';
 
 import './App.css';
 
@@ -32,19 +37,18 @@ function App() {
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
                     {/* Protected Instructor routes */}
-                    <Route
-                        path="/instructor/*"
-                        element={
-                            <InstructorRoute>
+                    <Route path="/instructor" element={<InstructorRoute />}>
+                        <Route index element={<InstructorDashboard />} />
+                        <Route 
+                            path="videos/*" 
+                            element={
                                 <VideoProvider>
-                                    <Routes>
-                                        <Route path="videos" element={<VideoDashboard />} />
-                                        <Route path="" element={<Navigate to="videos" replace />} />
-                                    </Routes>
+                                    <VideoDashboard />
                                 </VideoProvider>
-                            </InstructorRoute>
-                        }
-                    />
+                            } 
+                        />
+                        { <Route path="quizzes/*" element={<QuizRoutes />} /> }
+                    </Route>
 
                     {/* Catch-all redirect */}
                     <Route path="*" element={<Navigate to="/" replace />} />

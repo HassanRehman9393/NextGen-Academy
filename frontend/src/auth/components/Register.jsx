@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { getValidationErrors, getPasswordStrength } from '../utils/validation';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaGraduationCap } from 'react-icons/fa';
+import authService from '../services/authService';
+
+const getPasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]+/)) strength++;
+    if (password.match(/[A-Z]+/)) strength++;
+    if (password.match(/[0-9]+/)) strength++;
+    if (password.match(/[!@#$%^&*(),.?":{}|<>]+/)) strength++;
+    return strength;
+};
+
+const getPasswordStrengthColor = (password) => {
+    const strength = getPasswordStrength(password);
+    if (strength <= 2) return 'bg-red-500';
+    if (strength <= 3) return 'bg-yellow-500';
+    return 'bg-green-500';
+};
 
 const Register = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -12,41 +29,47 @@ const Register = () => {
         password: '',
         confirmPassword: ''
     });
-    const [errors, setErrors] = useState({});
-    const { handleRegister } = useAuth();
+    const [error, setError] = useState('');
+    const [setLoading] = useState(false);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
-        }
-    };
-
-    const getPasswordStrengthColor = () => {
-        const strength = getPasswordStrength(formData.password);
-        if (strength <= 2) return 'bg-red-500';
-        if (strength <= 3) return 'bg-yellow-500';
-        return 'bg-green-500';
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const validationErrors = getValidationErrors(formData);
-        
-        if (Object.keys(validationErrors).length === 0) {
-            try {
-                await handleRegister(formData);
-            } catch (error) {
-                setErrors({
-                    submit: error.message || 'Registration failed. Please try again.'
+        setError('');
+        setLoading(true);
+
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await authService.register({
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                password: formData.password
+            });
+
+            if (response.success) {
+                navigate('/login', { 
+                    state: { 
+                        message: 'Registration successful! Please check your email to verify your account.' 
+                    }
                 });
             }
-        } else {
-            setErrors(validationErrors);
+        } catch (err) {
+            setError(err.message || 'Failed to register');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -78,8 +101,8 @@ const Register = () => {
                                     value={formData.firstName}
                                     onChange={handleChange}
                                 />
-                                {errors.firstName && (
-                                    <p className="mt-1 text-sm text-red-300">{errors.firstName}</p>
+                                {error && (
+                                    <p className="mt-1 text-sm text-red-300">{error}</p>
                                 )}
                             </div>
 
@@ -94,8 +117,8 @@ const Register = () => {
                                     value={formData.lastName}
                                     onChange={handleChange}
                                 />
-                                {errors.lastName && (
-                                    <p className="mt-1 text-sm text-red-300">{errors.lastName}</p>
+                                {error && (
+                                    <p className="mt-1 text-sm text-red-300">{error}</p>
                                 )}
                             </div>
                         </div>
@@ -111,8 +134,8 @@ const Register = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                             />
-                            {errors.email && (
-                                <p className="mt-1 text-sm text-red-300">{errors.email}</p>
+                            {error && (
+                                <p className="mt-1 text-sm text-red-300">{error}</p>
                             )}
                         </div>
 
@@ -131,14 +154,14 @@ const Register = () => {
                                 <div className="mt-2">
                                     <div className="h-1.5 rounded-full bg-white/10">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
+                                            className={`h-full rounded-full transition-all duration-300 ${getPasswordStrengthColor(formData.password)}`}
                                             style={{ width: `${(getPasswordStrength(formData.password) / 5) * 100}%` }}
                                         ></div>
                                     </div>
                                 </div>
                             )}
-                            {errors.password && (
-                                <p className="mt-1 text-sm text-red-300">{errors.password}</p>
+                            {error && (
+                                <p className="mt-1 text-sm text-red-300">{error}</p>
                             )}
                         </div>
 
@@ -153,14 +176,14 @@ const Register = () => {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                             />
-                            {errors.confirmPassword && (
-                                <p className="mt-1 text-sm text-red-300">{errors.confirmPassword}</p>
+                            {error && (
+                                <p className="mt-1 text-sm text-red-300">{error}</p>
                             )}
                         </div>
 
-                        {errors.submit && (
+                        {error && (
                             <div className="text-sm text-red-300 text-center">
-                                {errors.submit}
+                                {error}
                             </div>
                         )}
 

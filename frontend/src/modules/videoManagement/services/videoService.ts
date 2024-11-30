@@ -16,13 +16,54 @@ interface VideoData {
 }
 
 class VideoService {
+    constructor() {
+        // Add response interceptor for token refresh
+        axios.interceptors.response.use(
+            (response) => response,
+            async (error) => {
+                const originalRequest = error.config;
+
+                if (error.response?.status === 401 && !originalRequest._retry) {
+                    originalRequest._retry = true;
+
+                    try {
+                        const refreshToken = localStorage.getItem('refreshToken');
+                        if (!refreshToken) {
+                            throw new Error('No refresh token available');
+                        }
+
+                        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+                            refreshToken
+                        });
+
+                        if (response.data?.success) {
+                            const { token, refreshToken: newRefreshToken } = response.data.data;
+
+                            localStorage.setItem('token', `Bearer ${token}`);
+                            localStorage.setItem('refreshToken', newRefreshToken);
+
+                            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                            return axios(originalRequest);
+                        }
+                    } catch (refreshError) {
+                        console.error('Token refresh failed:', refreshError);
+                        localStorage.clear();
+                        window.location.href = '/login';
+                        return Promise.reject(refreshError);
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+    }
+    
     private getAuthHeaders() {
         const token = localStorage.getItem('token');
         if (!token) {
             throw new Error('Authentication required');
         }
         return {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': token,
             'Content-Type': 'application/json'
         };
     }
@@ -114,22 +155,30 @@ class VideoService {
 
     async getVideos() {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('Authentication required');
-            }
-
-            console.log('Getting videos with token:', token);
             const response = await axios.get(`${API_URL}/videos`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: this.getAuthHeaders()
             });
-            
-            console.log('Videos response:', response.data);
             return response.data;
         } catch (error: any) {
+            if (axios.isAxiosError(error) && error.response?.status === 401) {
+                // Handle token expiration specifically for video requests
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (refreshToken) {
+                    try {
+                        const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, {
+                            refreshToken
+                        });
+                        if (refreshResponse.data?.success) {
+                            // Retry the original request
+                            return this.getVideos();
+                        }
+                    } catch (refreshError) {
+                        console.error('Failed to refresh token:', refreshError);
+                        localStorage.clear();
+                        window.location.href = '/login';
+                    }
+                }
+            }
             console.error('Error getting videos:', error);
             throw new Error(error.response?.data?.message || 'Failed to fetch videos');
         }
@@ -158,4 +207,6 @@ class VideoService {
     }
 }
 
-export default new VideoService(); 
+// Create and export a single instance
+const videoService = new VideoService();
+export default videoService; 
