@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/context/AuthContext';
 import InstructorRoute from './auth/components/InstructorRoute';
+import StudentRoute from './auth/components/StudentRoute';
+import { useAuth } from './auth/hooks/useAuth';
 
 // Public Components
 import Welcome from './components/Welcome';
@@ -13,23 +15,37 @@ import VerifyEmail from './auth/components/VerifyEmail';
 
 // Instructor Components
 import InstructorDashboard from './modules/instructor/components/InstructorDashboard';
-
-// Video Management Components
 import VideoDashboard from './modules/videoManagement/components/VideoDashboard';
 import { VideoProvider } from './modules/videoManagement/context/VideoContext';
-
-// Quiz Management Components
 import QuizRoutes from './modules/quizManagement/routes/QuizRoutes';
+import CourseRoutes from './modules/courseManagement/routes';
 
-import './App.css';
+
+
+
+// Redirect based on user role
+const RoleBasedRedirect = () => {
+    const { user } = useAuth();
+    
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    
+    if (user.roles.includes('instructor')) {
+        return <Navigate to="/instructor" replace />;
+    }
+    
+    return <Navigate to="/dashboard" replace />;
+};
 
 function App() {
     return (
         <AuthProvider>
             <div className="App">
                 <Routes>
-                    {/* Public routes */}
                     <Route path="/" element={<Welcome />} />
+                    {/* Public routes */}
+                    <Route path="/" element={<RoleBasedRedirect />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -47,8 +63,11 @@ function App() {
                                 </VideoProvider>
                             } 
                         />
-                        { <Route path="quizzes/*" element={<QuizRoutes />} /> }
+                        <Route path="quizzes/*" element={<QuizRoutes />} />
+                        <Route path="courses/*" element={<CourseRoutes />} />
                     </Route>
+
+                  
 
                     {/* Catch-all redirect */}
                     <Route path="*" element={<Navigate to="/" replace />} />
