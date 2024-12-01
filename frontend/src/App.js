@@ -66,7 +66,12 @@ function App() {
                         <Route path="quizzes/*" element={<QuizRoutes />} />
                         <Route path="courses/*" element={<CourseRoutes />} />
                     </Route>
-
+                    <Route>
+                    {/* Protected Student routes */}
+                    <Route path="/student" element={<StudentDashboardRoutes />}>
+                        <Route index element={<StudentDashboardRoutes />} />
+                    </Route>
+                    </Route>
                   
 
                     {/* Catch-all redirect */}

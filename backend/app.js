@@ -14,7 +14,7 @@ const { authenticateToken } = require('./src/middleware/authMiddleware');
 const authRouter = require('./src/modules/auth/routes/authRoutes');
 const videoRouter = require('./src/modules/videos/routes/videoRoutes');
 const courseRouter = require('./src/modules/courses/routes/courseRoutes');
-
+const dashboardRouter = require('./src/modules/studentDashboard/routes/dashboardRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -38,7 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(passport.initialize());
 
 // Protected routes
-const protectedRoutes = ['/api/videos', '/api/quizzes', '/api/courses'];
+const protectedRoutes = ['/api/videos', '/api/quizzes', '/api/courses', '/api/dashboard'];
 
 // Apply authentication to protected routes
 protectedRoutes.forEach(route => {
@@ -50,7 +50,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/videos', videoRouter);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/courses', courseRouter);
-
+app.use('/api/dashboard', dashboardRouter);
 
 // Handle 404s
 app.use((req, res, next) => {
