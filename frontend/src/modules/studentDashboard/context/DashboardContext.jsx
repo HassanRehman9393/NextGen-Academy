@@ -15,6 +15,8 @@ export const DashboardProvider = ({ children }) => {
     const [filters, setFilters] = useState({
         category: '',
         difficultyLevel: '',
+        duration: '',
+        rating: '',
         sortBy: 'createdAt',
         sortOrder: 'desc'
     });
@@ -51,21 +53,30 @@ export const DashboardProvider = ({ children }) => {
             const queryParams = {
                 page,
                 limit: pagination.itemsPerPage,
-                ...(searchQuery && { search: searchQuery }),
-                ...(filters.difficultyLevel && { difficultyLevel: filters.difficultyLevel }),
-                ...(filters.category && { category: filters.category }),
                 sortBy: filters.sortBy,
                 sortOrder: filters.sortOrder
             };
 
+            // Add search if exists
+            if (searchQuery.trim()) {
+                queryParams.search = searchQuery.trim();
+            }
+
+            // Add filters if they exist
+            if (filters.category) queryParams.category = filters.category;
+            if (filters.difficultyLevel) queryParams.difficultyLevel = filters.difficultyLevel;
+            if (filters.rating) queryParams.minRating = filters.rating;
+
+            console.log('Fetching courses with params:', queryParams);
             const response = await dashboardService.getCourses(queryParams);
 
             if (response.success) {
-                setCourses(response.data || []);
+                setCourses(response.data);
                 setPagination(prev => ({
                     ...prev,
-                    ...response.pagination,
-                    currentPage: page
+                    currentPage: page,
+                    totalPages: Math.ceil(response.pagination.totalItems / pagination.itemsPerPage),
+                    totalItems: response.pagination.totalItems
                 }));
             } else {
                 throw new Error(response.message || 'Failed to fetch courses');
@@ -74,14 +85,10 @@ export const DashboardProvider = ({ children }) => {
             console.error('Error fetching courses:', err);
             setError(err.message);
             setCourses([]);
-            
-            if (err.message.includes('token') || err.response?.status === 401) {
-                navigate('/login');
-            }
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, filters, pagination.itemsPerPage, navigate]);
+    }, [searchQuery, filters, pagination.itemsPerPage]);
 
     const fetchVideos = useCallback(async (page = 1) => {
         try {
@@ -91,20 +98,29 @@ export const DashboardProvider = ({ children }) => {
             const queryParams = {
                 page,
                 limit: pagination.itemsPerPage,
-                ...(searchQuery && { search: searchQuery }),
-                ...(filters.category && { category: filters.category }),
                 sortBy: filters.sortBy,
                 sortOrder: filters.sortOrder
             };
 
+            // Add search if exists
+            if (searchQuery.trim()) {
+                queryParams.search = searchQuery.trim();
+            }
+
+            // Add filters if they exist
+            if (filters.category) queryParams.category = filters.category;
+            if (filters.duration) queryParams.duration = filters.duration;
+
+            console.log('Fetching videos with params:', queryParams);
             const response = await dashboardService.getVideos(queryParams);
 
             if (response.success) {
-                setVideos(response.data || []);
+                setVideos(response.data);
                 setPagination(prev => ({
                     ...prev,
-                    ...response.pagination,
-                    currentPage: page
+                    currentPage: page,
+                    totalPages: Math.ceil(response.pagination.totalItems / pagination.itemsPerPage),
+                    totalItems: response.pagination.totalItems
                 }));
             } else {
                 throw new Error(response.message || 'Failed to fetch videos');
@@ -113,25 +129,12 @@ export const DashboardProvider = ({ children }) => {
             console.error('Error fetching videos:', err);
             setError(err.message);
             setVideos([]);
-            
-            if (err.message.includes('token') || err.response?.status === 401) {
-                navigate('/login');
-            }
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, filters, pagination.itemsPerPage, navigate]);
+    }, [searchQuery, filters, pagination.itemsPerPage]);
 
-    // Handle view changes
-    useEffect(() => {
-        if (activeView === 'courses') {
-            fetchCourses(1);
-        } else {
-            fetchVideos(1);
-        }
-    }, [activeView, fetchCourses, fetchVideos]);
-
-    // Handle search and filter changes
+    // Handle search changes with debounce
     useEffect(() => {
         const timer = setTimeout(() => {
             if (activeView === 'courses') {
@@ -162,6 +165,20 @@ export const DashboardProvider = ({ children }) => {
             fetchVideos(page);
         }
     }, [activeView, fetchCourses, fetchVideos]);
+
+    // Reset filters when switching views
+    useEffect(() => {
+        setFilters({
+            category: '',
+            difficultyLevel: '',
+            duration: '',
+            rating: '',
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
+        });
+        setSearchQuery('');
+        setPagination(prev => ({ ...prev, currentPage: 1 }));
+    }, [activeView]);
 
     const value = {
         activeView,

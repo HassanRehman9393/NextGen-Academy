@@ -6,17 +6,37 @@ const mongoose = require('mongoose');
 class DashboardService {
     async getCourses({ query, page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc' }) {
         try {
-            console.log('MongoDB Connection State:', mongoose.connection.readyState);
-            console.log('Course Model:', Course.modelName, Course.collection.name);
+            console.log('Getting courses with query:', query);
             
-            const totalCoursesInDB = await Course.countDocuments();
-            console.log('Total courses in database:', totalCoursesInDB);
+            // Build search query
+            const searchQuery = {};
+            
+            // Add text search if provided
+            if (query.search) {
+                searchQuery.$or = [
+                    { title: { $regex: query.search, $options: 'i' } },
+                    { description: { $regex: query.search, $options: 'i' } }
+                ];
+            }
+
+            // Add filters
+            if (query.category) {
+                searchQuery.category = query.category;
+            }
+            if (query.difficultyLevel) {
+                searchQuery.difficultyLevel = query.difficultyLevel;
+            }
+            if (query.minRating) {
+                searchQuery.rating = { $gte: parseFloat(query.minRating) };
+            }
+
+            console.log('Final search query:', searchQuery);
 
             const skip = (page - 1) * limit;
             const sortOptions = buildSortOptions(sortBy, sortOrder);
 
             const [courses, totalItems] = await Promise.all([
-                Course.find()
+                Course.find(searchQuery)
                     .populate({
                         path: 'instructor',
                         select: 'firstName lastName email'
@@ -26,10 +46,10 @@ class DashboardService {
                     .limit(limit)
                     .lean()
                     .exec(),
-                Course.countDocuments()
+                Course.countDocuments(searchQuery)
             ]);
 
-            console.log('Final courses query result:', {
+            console.log('Query results:', {
                 coursesFound: courses.length,
                 totalItems,
                 skip,
@@ -42,28 +62,51 @@ class DashboardService {
                 totalItems
             };
         } catch (error) {
-            console.error('Detailed error in getCourses service:', {
-                error: error.message,
-                stack: error.stack,
-                name: error.name
-            });
-            throw new Error(`Failed to fetch courses: ${error.message}`);
+            console.error('Error in getCourses service:', error);
+            throw error;
         }
     }
 
     async getVideos({ query, page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc' }) {
         try {
-            console.log('MongoDB Connection State:', mongoose.connection.readyState);
-            console.log('Video Model:', Video.modelName, Video.collection.name);
+            console.log('Getting videos with query:', query);
             
-            const totalVideosInDB = await Video.countDocuments();
-            console.log('Total videos in database:', totalVideosInDB);
+            // Build search query
+            const searchQuery = {};
+            
+            // Add text search if provided
+            if (query.search) {
+                searchQuery.$or = [
+                    { title: { $regex: query.search, $options: 'i' } },
+                    { description: { $regex: query.search, $options: 'i' } }
+                ];
+            }
+
+            // Add filters
+            if (query.category) {
+                searchQuery.category = query.category;
+            }
+            if (query.duration) {
+                switch (query.duration) {
+                    case 'short':
+                        searchQuery.duration = { $lte: 300 }; // 5 minutes
+                        break;
+                    case 'medium':
+                        searchQuery.duration = { $gt: 300, $lte: 1200 }; // 5-20 minutes
+                        break;
+                    case 'long':
+                        searchQuery.duration = { $gt: 1200 }; // > 20 minutes
+                        break;
+                }
+            }
+
+            console.log('Final video search query:', searchQuery);
 
             const skip = (page - 1) * limit;
             const sortOptions = buildSortOptions(sortBy, sortOrder);
 
             const [videos, totalItems] = await Promise.all([
-                Video.find()
+                Video.find(searchQuery)
                     .populate({
                         path: 'uploadedBy',
                         select: 'firstName lastName email'
@@ -73,10 +116,10 @@ class DashboardService {
                     .limit(limit)
                     .lean()
                     .exec(),
-                Video.countDocuments()
+                Video.countDocuments(searchQuery)
             ]);
 
-            console.log('Final videos query result:', {
+            console.log('Query results:', {
                 videosFound: videos.length,
                 totalItems,
                 skip,
@@ -89,12 +132,8 @@ class DashboardService {
                 totalItems
             };
         } catch (error) {
-            console.error('Detailed error in getVideos service:', {
-                error: error.message,
-                stack: error.stack,
-                name: error.name
-            });
-            throw new Error(`Failed to fetch videos: ${error.message}`);
+            console.error('Error in getVideos service:', error);
+            throw error;
         }
     }
 
@@ -130,87 +169,6 @@ class DashboardService {
             return video;
         } catch (error) {
             console.error('Error in getVideoById service:', error);
-            throw error;
-        }
-    }
-
-    async isUserEnrolled(userId, courseId) {
-        try {
-            const enrollment = await Course.findOne({
-                _id: courseId,
-                'enrollments.userId': userId
-            });
-            return !!enrollment;
-        } catch (error) {
-            console.error('Error checking enrollment:', error);
-            return false;
-        }
-    }
-
-    async enrollUserInCourse(userId, courseId) {
-        try {
-            const course = await Course.findById(courseId);
-            if (!course) {
-                throw new Error('Course not found');
-            }
-
-            if (await this.isUserEnrolled(userId, courseId)) {
-                throw new Error('Already enrolled in this course');
-            }
-
-            course.enrollments.push({
-                userId,
-                enrolledAt: new Date(),
-                progress: 0
-            });
-
-            await course.save();
-        } catch (error) {
-            console.error('Error enrolling user:', error);
-            throw error;
-        }
-    }
-
-    async getVideoProgress(userId, videoId) {
-        try {
-            const progress = await Video.findOne(
-                { _id: videoId, 'progress.userId': userId },
-                { 'progress.$': 1 }
-            );
-            return progress?.progress[0]?.percent || 0;
-        } catch (error) {
-            console.error('Error getting video progress:', error);
-            return 0;
-        }
-    }
-
-    async updateVideoProgress(userId, videoId, progress) {
-        try {
-            await Video.findOneAndUpdate(
-                { _id: videoId, 'progress.userId': userId },
-                { $set: { 'progress.$.percent': progress } },
-                { upsert: true }
-            );
-        } catch (error) {
-            console.error('Error updating video progress:', error);
-            throw error;
-        }
-    }
-
-    async markVideoComplete(userId, videoId) {
-        try {
-            await Video.findOneAndUpdate(
-                { _id: videoId, 'progress.userId': userId },
-                {
-                    $set: {
-                        'progress.$.percent': 100,
-                        'progress.$.completedAt': new Date()
-                    }
-                },
-                { upsert: true }
-            );
-        } catch (error) {
-            console.error('Error marking video complete:', error);
             throw error;
         }
     }

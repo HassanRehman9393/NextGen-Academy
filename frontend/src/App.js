@@ -20,8 +20,8 @@ import { VideoProvider } from './modules/videoManagement/context/VideoContext';
 import QuizRoutes from './modules/quizManagement/routes/QuizRoutes';
 import CourseRoutes from './modules/courseManagement/routes';
 
-
-
+// Student Components
+import StudentDashboardRoutes from './modules/studentDashboard/routes/StudentDashboardRoutes';
 
 // Redirect based on user role
 const RoleBasedRedirect = () => {
@@ -43,8 +43,8 @@ function App() {
         <AuthProvider>
             <div className="App">
                 <Routes>
-                    <Route path="/" element={<Welcome />} />
                     {/* Public routes */}
+                    <Route path="/" element={<Welcome />} />
                     <Route path="/" element={<RoleBasedRedirect />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -66,13 +66,11 @@ function App() {
                         <Route path="quizzes/*" element={<QuizRoutes />} />
                         <Route path="courses/*" element={<CourseRoutes />} />
                     </Route>
-                    <Route>
+
                     {/* Protected Student routes */}
-                    <Route path="/student" element={<StudentDashboardRoutes />}>
-                        <Route index element={<StudentDashboardRoutes />} />
+                    <Route path="/dashboard/*" element={<StudentRoute />}>
+                        <Route path="*" element={<StudentDashboardRoutes />} />
                     </Route>
-                    </Route>
-                  
 
                     {/* Catch-all redirect */}
                     <Route path="*" element={<Navigate to="/" replace />} />
