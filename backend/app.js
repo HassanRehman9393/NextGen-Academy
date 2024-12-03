@@ -7,7 +7,6 @@ const passport = require('passport');
 const connectDB = require('./src/config/database');
 const cors = require('cors');
 require('dotenv').config();
-const { quizRoutes } = require('./src/modules/quizzes');
 const { authenticateToken } = require('./src/middleware/authMiddleware');
 
 // Import routes
@@ -15,6 +14,7 @@ const authRouter = require('./src/modules/auth/routes/authRoutes');
 const videoRouter = require('./src/modules/videos/routes/videoRoutes');
 const courseRouter = require('./src/modules/courses/routes/courseRoutes');
 const dashboardRouter = require('./src/modules/studentDashboard/routes/dashboardRoutes');
+const { quizRoutes } = require('./src/modules/quizzes');
 
 // Connect to MongoDB
 connectDB();

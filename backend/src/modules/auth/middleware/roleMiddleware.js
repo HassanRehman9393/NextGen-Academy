@@ -1,11 +1,56 @@
 const requireInstructor = (req, res, next) => {
-    if (!req.user || !req.user.roles || !req.user.roles.includes('instructor')) {
-        return res.status(403).json({
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        if (!req.user.roles.includes('instructor')) {
+            return res.status(403).json({
+                success: false,
+                message: 'Instructor access required'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Role middleware error:', error);
+        res.status(500).json({
             success: false,
-            message: 'Access denied. Instructor privileges required.'
+            message: 'Internal server error'
         });
     }
-    next();
 };
 
-module.exports = { requireInstructor }; 
+const requireStudent = (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        if (!req.user.roles.includes('student')) {
+            return res.status(403).json({
+                success: false,
+                message: 'Student access required'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Role middleware error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+module.exports = {
+    requireInstructor,
+    requireStudent
+}; 
