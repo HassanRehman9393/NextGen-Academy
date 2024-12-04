@@ -7,7 +7,7 @@ const passport = require('passport');
 const connectDB = require('./src/config/database');
 const cors = require('cors');
 require('dotenv').config();
-const { authenticateToken } = require('./src/middleware/authMiddleware');
+const { authenticateToken } = require('./src/modules/auth/middleware/authMiddleware');
 
 // Import routes
 const authRouter = require('./src/modules/auth/routes/authRoutes');
@@ -15,6 +15,7 @@ const videoRouter = require('./src/modules/videos/routes/videoRoutes');
 const courseRouter = require('./src/modules/courses/routes/courseRoutes');
 const dashboardRouter = require('./src/modules/studentDashboard/routes/dashboardRoutes');
 const { quizRoutes } = require('./src/modules/quizzes');
+const forumRouter = require('./src/modules/discussion/routes/forumRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -24,7 +25,8 @@ const app = express();
 // CORS configuration
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['new-token']
 }));
 
 // Middleware
@@ -37,20 +39,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Initialize Passport
 app.use(passport.initialize());
 
-// Protected routes
-const protectedRoutes = ['/api/videos', '/api/quizzes', '/api/courses', '/api/dashboard'];
-
-// Apply authentication to protected routes
-protectedRoutes.forEach(route => {
-    app.use(route, authenticateToken);
-});
-
 // API Routes
 app.use('/api/auth', authRouter);
-app.use('/api/videos', videoRouter);
-app.use('/api/quizzes', quizRoutes);
-app.use('/api/courses', courseRouter);
-app.use('/api/dashboard', dashboardRouter);
+
+// Protected routes with authentication
+app.use('/api/videos', authenticateToken, videoRouter);
+app.use('/api/quizzes', authenticateToken, quizRoutes);
+app.use('/api/courses', authenticateToken, courseRouter);
+app.use('/api/dashboard', authenticateToken, dashboardRouter);
+app.use('/api/discussion', forumRouter);
 
 // Handle 404s
 app.use((req, res, next) => {

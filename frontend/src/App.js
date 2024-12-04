@@ -19,6 +19,7 @@ import VideoDashboard from './modules/videoManagement/components/VideoDashboard'
 import { VideoProvider } from './modules/videoManagement/context/VideoContext';
 import QuizRoutes from './modules/quizManagement/routes/QuizRoutes';
 import CourseRoutes from './modules/courseManagement/routes';
+import DiscussionRoutes from './modules/discussion/routes/DiscussionRoutes';
 
 // Student Components
 import StudentDashboardRoutes from './modules/studentDashboard/routes/StudentDashboardRoutes';
@@ -65,6 +66,7 @@ function App() {
                         />
                         <Route path="quizzes/*" element={<QuizRoutes />} />
                         <Route path="courses/*" element={<CourseRoutes />} />
+                        <Route path="forums/*" element={<DiscussionRoutes />} />
                     </Route>
 
                     {/* Protected Student routes */}

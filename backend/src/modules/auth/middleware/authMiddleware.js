@@ -6,12 +6,13 @@ const authenticateToken = async (req, res, next) => {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
 
+        console.log('Auth Header:', authHeader);
         console.log('Received token:', token);
 
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: 'Authentication token is required'
+                message: 'No authentication token provided'
             });
         }
 
@@ -64,7 +65,7 @@ const authenticateToken = async (req, res, next) => {
                     code: 'TOKEN_EXPIRED'
                 });
             }
-            return res.status(403).json({
+            return res.status(401).json({
                 success: false,
                 message: 'Invalid token'
             });

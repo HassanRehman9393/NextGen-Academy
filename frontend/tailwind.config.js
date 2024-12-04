@@ -11,6 +11,8 @@ module.exports = {
     extend: {
       animation: {
         blob: "blob 7s infinite",
+        fadeIn: 'fadeIn 0.2s ease-out',
+        modalSlide: 'modalSlide 0.3s ease-out'
       },
       keyframes: {
         blob: {
@@ -25,6 +27,20 @@ module.exports = {
           },
           "100%": {
             transform: "translate(0px, 0px) scale(1)",
+          },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        modalSlide: {
+          '0%': { 
+            opacity: '0',
+            transform: 'scale(0.95) translateY(-10px)'
+          },
+          '100%': { 
+            opacity: '1',
+            transform: 'scale(1) translateY(0)'
           },
         },
       },
