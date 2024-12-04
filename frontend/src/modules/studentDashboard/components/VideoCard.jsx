@@ -7,7 +7,7 @@ const VideoCard = ({ video }) => {
         _id,
         title,
         description,
-        instructor,
+        uploadedBy,
         duration,
         viewCount = 0,
         uploadType,
@@ -75,7 +75,7 @@ const VideoCard = ({ video }) => {
                     {/* Instructor */}
                     <p className="text-sm text-white/70 flex items-center mb-3">
                         <FaGraduationCap className="mr-2" />
-                        {instructor?.firstName} {instructor?.lastName}
+                        {uploadedBy?.firstName} {uploadedBy?.lastName}
                     </p>
 
                     {/* Description */}

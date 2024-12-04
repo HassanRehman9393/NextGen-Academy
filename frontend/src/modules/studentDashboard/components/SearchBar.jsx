@@ -1,87 +1,201 @@
-import React, { useState } from 'react';
-import { FaSearch, FaFilter } from 'react-icons/fa';
+import React, { useState, useCallback } from 'react';
+import { FaSearch, FaFilter, FaTimes, FaChevronDown } from 'react-icons/fa';
 import { useDashboard } from '../context/DashboardContext';
+import { categories, difficultyLevels, getDifficultyColor } from '../utils/filterHelper';
 
-const SearchBar = () => {
-    const { searchQuery, handleSearch, filters, handleFilterChange } = useDashboard();
-    const [showFilters, setShowFilters] = useState(false);
+const SearchBar = ({ disabled }) => {
+    const { 
+        handleSearch, 
+        handleCategoryFilter, 
+        handleDifficultyFilter, 
+        filters,
+        activeView,
+        loading 
+    } = useDashboard();
+    
+    const [searchInput, setSearchInput] = useState('');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    const handleSearchInput = (e) => {
-        handleSearch(e.target.value);
+    const handleSearchSubmit = useCallback((e) => {
+        e.preventDefault();
+        handleSearch(searchInput);
+    }, [searchInput, handleSearch]);
+
+    const handleCategoryChange = (e) => {
+        const value = e.target.value;
+        handleCategoryFilter(value);
+        if (!value) setIsFilterOpen(false);
     };
 
+    const handleDifficultyChange = (e) => {
+        const value = e.target.value;
+        handleDifficultyFilter(value);
+        if (!value) setIsFilterOpen(false);
+    };
+
+    const clearFilters = () => {
+        handleCategoryFilter('');
+        handleDifficultyFilter('');
+        setIsFilterOpen(false);
+    };
+
+    const hasActiveFilters = filters.category || filters.difficultyLevel;
+
     return (
-        <div className="relative w-full md:w-auto">
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={handleSearchInput}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder-white/50 focus:outline-none focus:border-yellow-300/50 focus:ring-1 focus:ring-yellow-300/50 transition-all duration-200"
-                    />
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
+        <div className="relative space-y-4">
+            {/* Main Search Bar Container */}
+            <div className="flex flex-col md:flex-row gap-4">
+                {/* Search Input Group */}
+                <div className="flex-1">
+                    <form onSubmit={handleSearchSubmit} className="relative group">
+                        <input
+                            type="text"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            placeholder={`Search ${activeView}...`}
+                            className="w-full h-14 pl-14 pr-12 bg-white/10 border-2 border-white/10 rounded-2xl text-white placeholder-white/40 
+                                focus:outline-none focus:border-yellow-400/50 focus:bg-white/20 focus:placeholder-white/50
+                                transition-all duration-300 text-base font-medium
+                                group-hover:border-white/20 group-hover:bg-white/[0.15]"
+                            disabled={disabled || loading}
+                        />
+                        <div className="absolute left-5 top-1/2 -translate-y-1/2">
+                            <FaSearch className="text-lg text-white/40 group-hover:text-white/60 transition-colors duration-300" />
+                        </div>
+                        {searchInput && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchInput('');
+                                    handleSearch('');
+                                }}
+                                className="absolute right-5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/90 transition-colors duration-300"
+                            >
+                                <FaTimes className="text-lg" />
+                            </button>
+                        )}
+                    </form>
                 </div>
+
+                {/* Filter Button */}
                 <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`px-4 rounded-xl border transition-all duration-200 ${
-                        showFilters 
-                            ? 'bg-yellow-400/20 border-yellow-300/30 text-yellow-300' 
-                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
-                    }`}
+                    type="button"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className={`h-14 px-8 rounded-2xl border-2 transition-all duration-300 flex items-center gap-3
+                        ${isFilterOpen || hasActiveFilters
+                            ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-400 shadow-lg shadow-yellow-400/10'
+                            : 'bg-white/10 border-white/10 text-white hover:bg-white/[0.15] hover:border-white/20'
+                        } ${disabled || loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+                    disabled={disabled || loading}
                 >
-                    <FaFilter />
+                    <FaFilter className={`text-lg ${hasActiveFilters ? 'animate-pulse' : ''}`} />
+                    <span className="font-semibold">Filters</span>
+                    {hasActiveFilters && (
+                        <span className="flex items-center justify-center w-6 h-6 text-xs font-bold bg-yellow-400 text-gray-900 rounded-lg shadow-inner">
+                            {(filters.category ? 1 : 0) + (filters.difficultyLevel ? 1 : 0)}
+                        </span>
+                    )}
                 </button>
             </div>
 
-            {/* Filters Dropdown */}
-            {showFilters && (
-                <div className="absolute right-0 mt-2 w-72 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-4 z-10">
-                    <div className="space-y-4">
-                        {/* Difficulty Filter */}
-                        <div>
-                            <label className="block text-white/70 mb-2 text-sm">Difficulty Level</label>
-                            <select
-                                value={filters.difficulty || ''}
-                                onChange={(e) => handleFilterChange({ difficulty: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-yellow-300/50 focus:ring-1 focus:ring-yellow-300/50"
-                            >
-                                <option value="">All Levels</option>
-                                <option value="beginner">Beginner</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
-                            </select>
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+                <div className="flex items-center gap-4 p-4 bg-white/[0.08] backdrop-blur-lg rounded-xl border border-white/10 shadow-lg">
+                    <span className="text-sm font-semibold text-white/70">Active Filters:</span>
+                    <div className="flex flex-wrap gap-2">
+                        {filters.category && (
+                            <span className="px-4 py-2 text-sm font-medium bg-yellow-400/10 text-yellow-400 rounded-lg border border-yellow-400/20 
+                                flex items-center gap-2 hover:bg-yellow-400/20 transition-colors duration-300">
+                                {categories.find(c => c.id === filters.category)?.label}
+                                <button
+                                    onClick={() => handleCategoryFilter('')}
+                                    className="hover:text-white transition-colors duration-200"
+                                >
+                                    <FaTimes size={12} />
+                                </button>
+                            </span>
+                        )}
+                        {filters.difficultyLevel && (
+                            <span className={`px-4 py-2 text-sm font-medium rounded-lg border flex items-center gap-2 
+                                ${getDifficultyColor(filters.difficultyLevel)} border-current border-opacity-20 
+                                hover:bg-opacity-20 transition-colors duration-300`}>
+                                {difficultyLevels.find(d => d.id === filters.difficultyLevel)?.label}
+                                <button
+                                    onClick={() => handleDifficultyFilter('')}
+                                    className="hover:text-white transition-colors duration-200"
+                                >
+                                    <FaTimes size={12} />
+                                </button>
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={clearFilters}
+                        className="ml-auto text-sm font-medium text-white/50 hover:text-white transition-colors duration-200 
+                            px-3 py-1.5 rounded-lg hover:bg-white/10"
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
+
+            {/* Filter Panel Dropdown */}
+            {isFilterOpen && (
+                <div className="absolute top-full left-0 right-0 mt-4 p-6 bg-white/[0.08] backdrop-blur-xl border border-white/10 
+                    rounded-2xl z-10 shadow-2xl transform transition-all duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Category Filter */}
+                        <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-white/90">
+                                Category
+                            </label>
+                            <div className="relative group">
+                                <select
+                                    value={filters.category}
+                                    onChange={handleCategoryChange}
+                                    className="w-full h-12 pl-4 pr-12 bg-white/10 border-2 border-white/10 rounded-xl text-white 
+                                        appearance-none focus:outline-none focus:border-yellow-400/50 focus:bg-white/20 
+                                        transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
+                                        group-hover:border-white/20 group-hover:bg-white/[0.15]"
+                                    disabled={disabled || loading}
+                                >
+                                    <option value="" className="bg-gray-900/95">All Categories</option>
+                                    {categories.map(category => (
+                                        <option key={category.id} value={category.id} className="bg-gray-900/95">
+                                            {category.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 
+                                    group-hover:text-white/60 transition-colors duration-300 pointer-events-none" />
+                            </div>
                         </div>
 
-                        {/* Duration Filter */}
-                        <div>
-                            <label className="block text-white/70 mb-2 text-sm">Duration</label>
-                            <select
-                                value={filters.duration || ''}
-                                onChange={(e) => handleFilterChange({ duration: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-yellow-300/50 focus:ring-1 focus:ring-yellow-300/50"
-                            >
-                                <option value="">Any Duration</option>
-                                <option value="short">Short (‹ 1 hour)</option>
-                                <option value="medium">Medium (1-3 hours)</option>
-                                <option value="long">Long (› 3 hours)</option>
-                            </select>
-                        </div>
-
-                        {/* Rating Filter */}
-                        <div>
-                            <label className="block text-white/70 mb-2 text-sm">Minimum Rating</label>
-                            <select
-                                value={filters.rating || ''}
-                                onChange={(e) => handleFilterChange({ rating: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-yellow-300/50 focus:ring-1 focus:ring-yellow-300/50"
-                            >
-                                <option value="">Any Rating</option>
-                                <option value="4">4+ Stars</option>
-                                <option value="3">3+ Stars</option>
-                                <option value="2">2+ Stars</option>
-                            </select>
+                        {/* Difficulty Level Filter */}
+                        <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-white/90">
+                                Difficulty Level
+                            </label>
+                            <div className="relative group">
+                                <select
+                                    value={filters.difficultyLevel}
+                                    onChange={handleDifficultyChange}
+                                    className="w-full h-12 pl-4 pr-12 bg-white/10 border-2 border-white/10 rounded-xl text-white 
+                                        appearance-none focus:outline-none focus:border-yellow-400/50 focus:bg-white/20 
+                                        transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
+                                        group-hover:border-white/20 group-hover:bg-white/[0.15]"
+                                    disabled={disabled || loading}
+                                >
+                                    <option value="" className="bg-gray-900/95">All Levels</option>
+                                    {difficultyLevels.map(level => (
+                                        <option key={level.id} value={level.id} className="bg-gray-900/95">
+                                            {level.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 
+                                    group-hover:text-white/60 transition-colors duration-300 pointer-events-none" />
+                            </div>
                         </div>
                     </div>
                 </div>

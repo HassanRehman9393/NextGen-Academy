@@ -1,20 +1,10 @@
 import React, { useEffect } from 'react';
-import { FaGraduationCap, FaVideo, FaSearch, FaBookReader, FaClock, FaUserGraduate } from 'react-icons/fa';
-import { useDashboard } from '../context/DashboardContext';
+import { FaGraduationCap, FaVideo, FaBook, FaChalkboardTeacher } from 'react-icons/fa';
+import SearchBar from './SearchBar';
 import CourseList from './CourseList';
 import VideoList from './VideoList';
-import SearchBar from './SearchBar';
 import Pagination from './Pagination';
-
-const StatCard = ({ icon: Icon, title, value }) => (
-    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6">
-        <div className="flex items-center mb-2">
-            <Icon className="text-yellow-300 text-xl mr-2" />
-            <h4 className="text-white/60">{title}</h4>
-        </div>
-        <div className="text-3xl font-bold text-white">{value}</div>
-    </div>
-);
+import { useDashboard } from '../context/DashboardContext';
 
 const Dashboard = () => {
     const {
@@ -22,56 +12,54 @@ const Dashboard = () => {
         setActiveView,
         loading,
         error,
-        fetchCourses,
-        fetchVideos,
         pagination,
-        searchQuery,
-        filters,
-        courses,
-        videos
+        handleSearch,
+        handleFilterChange,
+        handlePageChange,
+        fetchCourses,
+        fetchVideos
     } = useDashboard();
 
-    // Initial fetch when component mounts
     useEffect(() => {
-        const fetchInitialData = async () => {
-            if (activeView === 'courses') {
-                await fetchCourses(1);
-            } else {
-                await fetchVideos(1);
-            }
-        };
-
-        fetchInitialData();
-    }, []); // Empty dependency array for initial mount
-
-    // Fetch when view, search, or filters change
-    useEffect(() => {
-        const fetchData = async () => {
-            if (activeView === 'courses') {
-                await fetchCourses(1);
-            } else {
-                await fetchVideos(1);
-            }
-        };
-
-        fetchData();
-    }, [activeView, searchQuery, filters]);
-
-    const handleViewChange = (view) => {
-        setActiveView(view);
-    };
+        if (activeView === 'courses') {
+            fetchCourses();
+        } else {
+            fetchVideos();
+        }
+    }, [activeView, fetchCourses, fetchVideos]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500">
-            {/* Header */}
-            <div className="bg-white/10 backdrop-blur-md border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <FaUserGraduate className="text-yellow-300 text-4xl" />
+        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900">
+            {/* Header Section */}
+            <div className="bg-white/[0.02] backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 shadow-xl">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        {/* Logo and Title */}
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-yellow-400/10 rounded-2xl">
+                                <FaGraduationCap className="text-3xl text-yellow-400" />
+                            </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-white">Learning Dashboard</h1>
-                                <p className="text-white/60">Explore courses and videos to enhance your knowledge</p>
+                                <h1 className="text-2xl font-bold text-white">Student Dashboard</h1>
+                                <p className="text-white/60 text-sm">Explore and learn from our extensive collection</p>
+                            </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex gap-4">
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                                <FaBook className="text-yellow-400" />
+                                <div>
+                                    <div className="text-sm text-white/60">Courses</div>
+                                    <div className="text-lg font-semibold text-white">12</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                                <FaChalkboardTeacher className="text-yellow-400" />
+                                <div>
+                                    <div className="text-sm text-white/60">Instructors</div>
+                                    <div className="text-lg font-semibold text-white">8</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -79,78 +67,90 @@ const Dashboard = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                {/* View Toggle and Search */}
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                    <div className="flex space-x-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* View Toggle and Search Section */}
+                <div className="space-y-6 mb-8">
+                    {/* View Toggle */}
+                    <div className="inline-flex p-1 bg-white/5 backdrop-blur-md rounded-xl border border-white/10">
                         <button
-                            onClick={() => handleViewChange('courses')}
-                            className={`flex items-center px-6 py-3 rounded-xl transition-all duration-200 ${
+                            onClick={() => setActiveView('courses')}
+                            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
                                 activeView === 'courses'
-                                    ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-300/30'
-                                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white border border-white/10'
+                                    ? 'bg-yellow-400 text-gray-900 shadow-lg'
+                                    : 'text-white hover:bg-white/10'
                             }`}
+                            disabled={loading}
                         >
-                            <FaGraduationCap className="mr-2" />
-                            Courses
+                            <div className="flex items-center gap-2">
+                                <FaBook />
+                                <span>Courses</span>
+                            </div>
                         </button>
                         <button
-                            onClick={() => handleViewChange('videos')}
-                            className={`flex items-center px-6 py-3 rounded-xl transition-all duration-200 ${
+                            onClick={() => setActiveView('videos')}
+                            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
                                 activeView === 'videos'
-                                    ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-300/30'
-                                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white border border-white/10'
+                                    ? 'bg-yellow-400 text-gray-900 shadow-lg'
+                                    : 'text-white hover:bg-white/10'
                             }`}
+                            disabled={loading}
                         >
-                            <FaVideo className="mr-2" />
-                            Videos
+                            <div className="flex items-center gap-2">
+                                <FaVideo />
+                                <span>Videos</span>
+                            </div>
                         </button>
                     </div>
-                    <SearchBar />
-                </div>
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <StatCard 
-                        icon={FaBookReader} 
-                        title="Available Courses" 
-                        value={courses.length} 
-                    />
-                    <StatCard 
-                        icon={FaVideo} 
-                        title="Available Videos" 
-                        value={videos.length} 
-                    />
-                    <StatCard 
-                        icon={FaClock} 
-                        title="Hours of Content" 
-                        value={`${Math.round((courses.length + videos.length) * 1.5)}+`} 
+                    {/* Search Bar */}
+                    <SearchBar
+                        onSearch={handleSearch}
+                        onFilterChange={handleFilterChange}
+                        disabled={loading}
                     />
                 </div>
 
-                {/* Error Display */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200">
-                        {error}
+                {/* Content Area */}
+                <div className="bg-white/[0.02] backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+                    <div className="p-6">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <div className="w-16 h-16 mb-4 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                                <p className="text-white/60 text-lg">Loading {activeView}...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="text-center py-12">
+                                <div className="max-w-lg mx-auto p-6 bg-red-500/10 backdrop-blur-md border border-red-500/20 rounded-xl">
+                                    <p className="text-red-300 text-lg mb-4">{error}</p>
+                                    <button
+                                        onClick={() => activeView === 'courses' ? fetchCourses() : fetchVideos()}
+                                        className="px-6 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {activeView === 'courses' ? (
+                                    <CourseList />
+                                ) : (
+                                    <VideoList />
+                                )}
+                                
+                                {pagination && pagination.totalPages > 1 && (
+                                    <div className="mt-8">
+                                        <Pagination
+                                            currentPage={pagination.currentPage || 1}
+                                            totalPages={pagination.totalPages || 1}
+                                            onPageChange={handlePageChange}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
-                )}
-
-                {/* Loading State */}
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-yellow-300 border-t-transparent"></div>
-                    </div>
-                ) : (
-                    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6">
-                        {/* Content List */}
-                        <div className="mb-8">
-                            {activeView === 'courses' ? <CourseList /> : <VideoList />}
-                        </div>
-
-                        {/* Pagination */}
-                        {pagination.totalPages > 1 && <Pagination />}
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );

@@ -8,12 +8,14 @@ import VideoDetail from '../components/VideoDetail';
 const StudentDashboardRoutes = () => {
     return (
         <DashboardProvider>
-            <Routes>
-                <Route index element={<Dashboard />} />
-                <Route path="courses/:courseId" element={<CourseDetail />} />
-                <Route path="videos/:videoId" element={<VideoDetail />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+                <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500">
+                    <Routes>
+                        <Route index element={<Dashboard />} />
+                        <Route path="courses/:courseId" element={<CourseDetail />} />
+                        <Route path="videos/:videoId" element={<VideoDetail />} />
+                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                </div>
         </DashboardProvider>
     );
 };

@@ -7,11 +7,13 @@ const { authenticateToken } = require('../../auth/middleware/authMiddleware');
 router.use(authenticateToken);
 
 // Course routes
-router.get('/courses', DashboardController.getCourses);
+router.get('/courses/all', DashboardController.getAllCourses);
+router.get('/courses/search', DashboardController.searchCourses);
 router.get('/courses/:id', DashboardController.getCourseById);
 
 // Video routes
-router.get('/videos', DashboardController.getVideos);
+router.get('/videos/all', DashboardController.getAllVideos);
+router.get('/videos/search', DashboardController.searchVideos);
 router.get('/videos/:id', DashboardController.getVideoById);
 
 module.exports = router;

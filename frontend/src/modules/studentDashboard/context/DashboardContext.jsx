@@ -1,201 +1,177 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import dashboardService from '../services/dashboardService';
 
 const DashboardContext = createContext();
 
 export const DashboardProvider = ({ children }) => {
-    const navigate = useNavigate();
-    const [activeView, setActiveView] = useState('courses');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [courses, setCourses] = useState([]);
     const [videos, setVideos] = useState([]);
+    const [activeView, setActiveView] = useState('courses');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [selectedVideo, setSelectedVideo] = useState(null);
     const [filters, setFilters] = useState({
         category: '',
         difficultyLevel: '',
-        duration: '',
-        rating: '',
         sortBy: 'createdAt',
         sortOrder: 'desc'
     });
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
-        totalItems: 0,
-        itemsPerPage: 12
+        totalItems: 0
     });
-
-    // Check authentication and fetch initial data
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
-        // Clean token if it has 'Bearer ' prefix
-        if (token.startsWith('Bearer ')) {
-            const cleanToken = token.replace('Bearer ', '');
-            localStorage.setItem('token', cleanToken);
-        }
-
-        // Initial data fetch
-        fetchCourses(1);
-    }, [navigate]);
 
     const fetchCourses = useCallback(async (page = 1) => {
         try {
             setLoading(true);
             setError(null);
-            
-            const queryParams = {
+            const params = {
                 page,
-                limit: pagination.itemsPerPage,
-                sortBy: filters.sortBy,
-                sortOrder: filters.sortOrder
+                limit: 12,
+                ...(searchQuery && { search: searchQuery }),
+                ...(filters.category && { category: filters.category }),
+                ...(filters.difficultyLevel && { difficultyLevel: filters.difficultyLevel })
             };
 
-            // Add search if exists
-            if (searchQuery.trim()) {
-                queryParams.search = searchQuery.trim();
-            }
+            const response = await (searchQuery 
+                ? dashboardService.searchCourses(params)
+                : dashboardService.getAllCourses(params)
+            );
 
-            // Add filters if they exist
-            if (filters.category) queryParams.category = filters.category;
-            if (filters.difficultyLevel) queryParams.difficultyLevel = filters.difficultyLevel;
-            if (filters.rating) queryParams.minRating = filters.rating;
-
-            console.log('Fetching courses with params:', queryParams);
-            const response = await dashboardService.getCourses(queryParams);
-
-            if (response.success) {
-                setCourses(response.data);
-                setPagination(prev => ({
-                    ...prev,
-                    currentPage: page,
-                    totalPages: Math.ceil(response.pagination.totalItems / pagination.itemsPerPage),
-                    totalItems: response.pagination.totalItems
-                }));
-            } else {
-                throw new Error(response.message || 'Failed to fetch courses');
-            }
+            setCourses(response.data.data);
+            setPagination(response.data.pagination);
         } catch (err) {
             console.error('Error fetching courses:', err);
-            setError(err.message);
+            setError(err.message || 'Failed to fetch courses');
             setCourses([]);
+            setPagination({
+                currentPage: 1,
+                totalPages: 1,
+                totalItems: 0
+            });
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, filters, pagination.itemsPerPage]);
+    }, [searchQuery, filters]);
 
     const fetchVideos = useCallback(async (page = 1) => {
         try {
             setLoading(true);
             setError(null);
-            
-            const queryParams = {
+            const params = {
                 page,
-                limit: pagination.itemsPerPage,
-                sortBy: filters.sortBy,
-                sortOrder: filters.sortOrder
+                limit: 12,
+                ...(searchQuery && { search: searchQuery }),
+                ...(filters.category && { category: filters.category })
             };
 
-            // Add search if exists
-            if (searchQuery.trim()) {
-                queryParams.search = searchQuery.trim();
-            }
+            const response = await (searchQuery 
+                ? dashboardService.searchVideos(params)
+                : dashboardService.getAllVideos(params)
+            );
 
-            // Add filters if they exist
-            if (filters.category) queryParams.category = filters.category;
-            if (filters.duration) queryParams.duration = filters.duration;
-
-            console.log('Fetching videos with params:', queryParams);
-            const response = await dashboardService.getVideos(queryParams);
-
-            if (response.success) {
-                setVideos(response.data);
-                setPagination(prev => ({
-                    ...prev,
-                    currentPage: page,
-                    totalPages: Math.ceil(response.pagination.totalItems / pagination.itemsPerPage),
-                    totalItems: response.pagination.totalItems
-                }));
-            } else {
-                throw new Error(response.message || 'Failed to fetch videos');
-            }
+            setVideos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (err) {
             console.error('Error fetching videos:', err);
-            setError(err.message);
+            setError(err.message || 'Failed to fetch videos');
             setVideos([]);
+            setPagination({
+                currentPage: 1,
+                totalPages: 1,
+                totalItems: 0
+            });
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, filters, pagination.itemsPerPage]);
+    }, [searchQuery, filters]);
 
-    // Handle search changes with debounce
-    useEffect(() => {
-        const timer = setTimeout(() => {
+    const getCourseById = useCallback(async (courseId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await dashboardService.getCourseById(courseId);
+            setSelectedCourse(response.data);
+            return response.data;
+        } catch (err) {
+            console.error('Error fetching course:', err);
+            setError(err.message || 'Failed to fetch course');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const getVideoById = useCallback(async (videoId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await dashboardService.getVideoById(videoId);
+            setSelectedVideo(response.data);
+            return response.data;
+        } catch (err) {
+            console.error('Error fetching video:', err);
+            setError(err.message || 'Failed to fetch video');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const value = {
+        loading,
+        error,
+        courses,
+        videos,
+        activeView,
+        setActiveView,
+        searchQuery,
+        filters,
+        pagination,
+        selectedCourse,
+        selectedVideo,
+        handleSearch: (query) => {
+            setSearchQuery(query);
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
             if (activeView === 'courses') {
                 fetchCourses(1);
             } else {
                 fetchVideos(1);
             }
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [searchQuery, filters, activeView]);
-
-    const handleSearch = useCallback((query) => {
-        setSearchQuery(query);
-        setPagination(prev => ({ ...prev, currentPage: 1 }));
-    }, []);
-
-    const handleFilterChange = useCallback((newFilters) => {
-        setFilters(prev => ({ ...prev, ...newFilters }));
-        setPagination(prev => ({ ...prev, currentPage: 1 }));
-    }, []);
-
-    const handlePageChange = useCallback((page) => {
-        setPagination(prev => ({ ...prev, currentPage: page }));
-        if (activeView === 'courses') {
-            fetchCourses(page);
-        } else {
-            fetchVideos(page);
-        }
-    }, [activeView, fetchCourses, fetchVideos]);
-
-    // Reset filters when switching views
-    useEffect(() => {
-        setFilters({
-            category: '',
-            difficultyLevel: '',
-            duration: '',
-            rating: '',
-            sortBy: 'createdAt',
-            sortOrder: 'desc'
-        });
-        setSearchQuery('');
-        setPagination(prev => ({ ...prev, currentPage: 1 }));
-    }, [activeView]);
-
-    const value = {
-        activeView,
-        setActiveView,
-        loading,
-        error,
-        courses,
-        videos,
-        searchQuery,
-        filters,
-        pagination,
-        handleSearch,
-        handleFilterChange,
-        handlePageChange,
+        },
+        handleCategoryFilter: (category) => {
+            setFilters(prev => ({ ...prev, category }));
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
+            if (activeView === 'courses') {
+                fetchCourses(1);
+            } else {
+                fetchVideos(1);
+            }
+        },
+        handleDifficultyFilter: (difficultyLevel) => {
+            setFilters(prev => ({ ...prev, difficultyLevel }));
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
+            if (activeView === 'courses') {
+                fetchCourses(1);
+            } else {
+                fetchVideos(1);
+            }
+        },
+        handlePageChange: (newPage) => {
+            setPagination(prev => ({ ...prev, currentPage: newPage }));
+            if (activeView === 'courses') {
+                fetchCourses(newPage);
+            } else {
+                fetchVideos(newPage);
+            }
+        },
         fetchCourses,
         fetchVideos,
-        dashboardService
+        getCourseById,
+        getVideoById
     };
 
     return (

@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../context/DashboardContext';
+import dashboardService from '../services/dashboardService';
 import { formatDuration, formatViewCount } from '../utils/filterHelper';
 import { FiClock, FiEye, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const VideoDetail = () => {
     const { videoId } = useParams();
     const navigate = useNavigate();
-    const { dashboardService } = useDashboard();
+    const { getVideoById, loading, error } = useDashboard();
     const [video, setVideo] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [progress, setProgress] = useState(0);
     const videoRef = useRef(null);
     const progressInterval = useRef(null);
@@ -18,8 +17,7 @@ const VideoDetail = () => {
     useEffect(() => {
         const fetchVideoDetails = async () => {
             try {
-                setLoading(true);
-                const data = await dashboardService.getVideoById(videoId);
+                const data = await getVideoById(videoId);
                 setVideo(data);
                 if (data.progress) {
                     setProgress(data.progress);
@@ -28,9 +26,7 @@ const VideoDetail = () => {
                     }
                 }
             } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+                console.error('Error fetching video:', err);
             }
         };
 
@@ -42,7 +38,7 @@ const VideoDetail = () => {
                 clearInterval(progressInterval.current);
             }
         };
-    }, [videoId, dashboardService]);
+    }, [videoId, getVideoById]);
 
     const handleTimeUpdate = () => {
         if (videoRef.current) {

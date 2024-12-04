@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../context/DashboardContext';
+import dashboardService from '../services/dashboardService';
 import { formatDuration, formatRating, getDifficultyColor } from '../utils/filterHelper';
 import { FiClock, FiBook, FiAward, FiPlay, FiClipboard } from 'react-icons/fi';
 
 const CourseDetail = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
-    const { dashboardService } = useDashboard();
+    const { getCourseById, loading, error } = useDashboard();
     const [course, setCourse] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {
         const fetchCourseDetails = async () => {
             try {
-                setLoading(true);
-                const data = await dashboardService.getCourseById(courseId);
+                const data = await getCourseById(courseId);
                 setCourse(data);
                 // Fetch student's progress if enrolled
                 if (data.isEnrolled) {
@@ -25,23 +23,21 @@ const CourseDetail = () => {
                     setProgress(progressData.progress);
                 }
             } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+                console.error('Error fetching course:', err);
             }
         };
 
         fetchCourseDetails();
-    }, [courseId, dashboardService]);
+    }, [courseId, getCourseById]);
 
     const handleEnroll = async () => {
         try {
             await dashboardService.enrollInCourse(courseId);
             // Refresh course data to update enrollment status
-            const updatedCourse = await dashboardService.getCourseById(courseId);
+            const updatedCourse = await getCourseById(courseId);
             setCourse(updatedCourse);
         } catch (err) {
-            setError(err.message);
+            console.error('Error enrolling in course:', err);
         }
     };
 
