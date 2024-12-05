@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/context/AuthContext';
 import InstructorRoute from './auth/components/InstructorRoute';
 import StudentRoute from './auth/components/StudentRoute';
-import PrivateRoute from './auth/components/PrivateRoute';
 import { useAuth } from './auth/hooks/useAuth';
 
 // Public Components
@@ -23,10 +22,10 @@ import CourseRoutes from './modules/courseManagement/routes';
 import DiscussionRoutes from './modules/discussion/routes/DiscussionRoutes';
 
 // Student Components
+import Dashboard from './modules/studentDashboard/components/Dashboard';
 import StudentDashboardRoutes from './modules/studentDashboard/routes/StudentDashboardRoutes';
-import { StudentForumProvider } from './modules/discussion/context/StudentForumContext';
-import ForumCatalog from './modules/discussion/components/ForumCatalog';
-import ForumDetailsStudent from './modules/discussion/components/ForumDetailsStudent';
+import { DashboardProvider } from './modules/studentDashboard/context/DashboardContext';
+import StudentForumRoutes from './modules/discussion/routes/StudentForumRoutes';
 
 // Redirect based on user role
 const RoleBasedRedirect = () => {
@@ -46,7 +45,7 @@ const RoleBasedRedirect = () => {
 function App() {
     return (
         <AuthProvider>
-            <StudentForumProvider>
+            <DashboardProvider>
                 <div className="App">
                     <Routes>
                         {/* Public routes */}
@@ -75,17 +74,19 @@ function App() {
                         </Route>
 
                         {/* Protected Student routes */}
-                        <Route path="/dashboard/*" element={<StudentRoute />}>
-                            <Route path="*" element={<StudentDashboardRoutes />} />
-                            <Route path="forums" element={<ForumCatalog />} />
-                            <Route path="forums/:forumId" element={<ForumDetailsStudent />} />
+                        <Route path="/dashboard" element={<StudentRoute />}>
+                            <Route index element={<Dashboard />} />
+                            <Route path="courses/*" element={<StudentDashboardRoutes />} />
+                            <Route path="videos/*" element={<StudentDashboardRoutes />} />
+                            <Route path="quizzes/*" element={<StudentDashboardRoutes />} />
+                            <Route path="forums/*" element={<StudentForumRoutes />} />
                         </Route>
 
                         {/* Catch-all redirect */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
-            </StudentForumProvider>
+            </DashboardProvider>
         </AuthProvider>
     );
 }

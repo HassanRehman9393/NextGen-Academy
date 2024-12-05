@@ -3,33 +3,43 @@ import studentForumService from '../services/studentForumService';
 
 const StudentForumContext = createContext();
 
+export const useStudentForum = () => {
+    const context = useContext(StudentForumContext);
+    if (!context) {
+        throw new Error('useStudentForum must be used within a StudentForumProvider');
+    }
+    return context;
+};
+
 export const StudentForumProvider = ({ children }) => {
     const [forums, setForums] = useState([]);
-    const [selectedForum, setSelectedForum] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [pagination, setPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        total: 0
-    });
+    const [selectedForum, setSelectedForum] = useState(null);
+    const [pagination, setPagination] = useState({});
 
-    const fetchForums = useCallback(async (page = 1, courseId = null) => {
+    const fetchForums = async (page = 1, courseId = null) => {
         try {
             setLoading(true);
+            setError(null);
             const response = await studentForumService.getAllForums(page, 10, courseId);
-            setForums(response.data.forums);
-            setPagination({
-                currentPage: response.data.currentPage,
-                totalPages: response.data.totalPages,
-                total: response.data.total
-            });
-        } catch (err) {
-            setError(err.message);
+            
+            if (response.success) {
+                setForums(response.data.forums);
+                setPagination({
+                    currentPage: response.data.currentPage,
+                    totalPages: response.data.totalPages
+                });
+            } else {
+                throw new Error(response.message || 'Failed to fetch forums');
+            }
+        } catch (error) {
+            console.error('Error fetching forums:', error);
+            setError(error.message);
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
     const fetchForumDetails = useCallback(async (forumId) => {
         try {
@@ -62,9 +72,9 @@ export const StudentForumProvider = ({ children }) => {
 
     const value = {
         forums,
-        selectedForum,
         loading,
         error,
+        selectedForum,
         pagination,
         fetchForums,
         fetchForumDetails,
@@ -76,12 +86,4 @@ export const StudentForumProvider = ({ children }) => {
             {children}
         </StudentForumContext.Provider>
     );
-};
-
-export const useStudentForum = () => {
-    const context = useContext(StudentForumContext);
-    if (!context) {
-        throw new Error('useStudentForum must be used within a StudentForumProvider');
-    }
-    return context;
 }; 

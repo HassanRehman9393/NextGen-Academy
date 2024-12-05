@@ -44,12 +44,12 @@ app.use(passport.initialize());
 app.use('/api/auth', authRouter);
 
 // Protected routes with authentication
+app.use('/api/discussion/student', authenticateToken, studentForumRouter);
+app.use('/api/discussion', forumRouter);
 app.use('/api/videos', authenticateToken, videoRouter);
 app.use('/api/quizzes', authenticateToken, quizRoutes);
 app.use('/api/courses', authenticateToken, courseRouter);
 app.use('/api/dashboard', authenticateToken, dashboardRouter);
-app.use('/api/discussion', forumRouter);
-app.use('/api/discussion/student', studentForumRouter);
 
 // Handle 404s
 app.use((req, res, next) => {
