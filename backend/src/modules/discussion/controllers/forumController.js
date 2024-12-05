@@ -129,6 +129,34 @@ class ForumController {
             handleError(error, req, res);
         }
     }
+
+    async addComment(req, res) {
+        try {
+            const { forumId } = req.params;
+            const { content } = req.body;
+            const instructorId = req.user._id;
+
+            if (!content) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment content is required'
+                });
+            }
+
+            const comment = await forumService.addComment(forumId, {
+                content: content.trim(),
+                studentId: instructorId
+            });
+
+            res.status(201).json({
+                success: true,
+                message: 'Comment added successfully',
+                data: comment
+            });
+        } catch (error) {
+            handleError(error, req, res);
+        }
+    }
 }
 
 module.exports = new ForumController(); 

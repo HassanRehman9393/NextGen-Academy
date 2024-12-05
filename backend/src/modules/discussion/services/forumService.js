@@ -81,10 +81,6 @@ class ForumService {
 
     async addReply(forumId, commentId, replyData) {
         try {
-            if (!validators.isValidReplyLength(replyData.content)) {
-                throw new ForumError('Invalid reply length', 400);
-            }
-
             const forum = await Forum.findById(forumId);
             if (!forum) {
                 throw new ForumError('Forum not found', 404);
@@ -95,14 +91,20 @@ class ForumService {
                 throw new ForumError('Comment not found', 404);
             }
 
-            if (comment.replies.length >= config.replies.maxPerComment) {
-                throw new ForumError('Maximum replies limit reached for this comment', 400);
-            }
+            comment.replies.push({
+                content: replyData.content,
+                authorId: replyData.authorId
+            });
 
-            comment.replies.push(replyData);
             await forum.save();
 
-            return formatForumDetails(forum);
+            // Fetch the updated forum with populated fields
+            const updatedForum = await Forum.findById(forumId)
+                .populate('instructorId', 'firstName lastName email')
+                .populate('comments.studentId', 'firstName lastName email')
+                .populate('comments.replies.authorId', 'firstName lastName email');
+
+            return updatedForum;
         } catch (error) {
             throw new ForumError('Error adding reply', 400, error.message);
         }
@@ -140,6 +142,32 @@ class ForumService {
             return forum;
         } catch (error) {
             throw new ForumError('Error deleting forum', 400, error.message);
+        }
+    }
+
+    async addComment(forumId, commentData) {
+        try {
+            const forum = await Forum.findById(forumId);
+            if (!forum) {
+                throw new ForumError('Forum not found', 404);
+            }
+
+            forum.comments.push({
+                content: commentData.content,
+                studentId: commentData.studentId
+            });
+
+            await forum.save();
+            
+            // Populate the newly added comment
+            const populatedForum = await Forum.findById(forumId)
+                .populate('comments.studentId', 'firstName lastName email')
+                .populate('comments.replies.authorId', 'firstName lastName email');
+
+            // Return the last comment (the one we just added)
+            return populatedForum.comments[populatedForum.comments.length - 1];
+        } catch (error) {
+            throw new ForumError('Error adding comment', 400, error.message);
         }
     }
 }

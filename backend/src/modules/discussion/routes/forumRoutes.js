@@ -11,6 +11,7 @@ router.use(authenticateToken, requireInstructor);
 router.get('/my-forums', forumController.getForumsByInstructor);
 router.post('/create', forumController.createForum);
 router.get('/:forumId', forumController.getForumDetails);
+router.post('/:forumId/comments', forumController.addComment);
 router.post('/:forumId/comments/:commentId/reply', forumController.addReply);
 router.put('/:forumId', forumController.updateForum);
 router.delete('/:forumId', forumController.deleteForum);
