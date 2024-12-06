@@ -1,144 +1,262 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../context/DashboardContext';
-import dashboardService from '../services/dashboardService';
 import { formatDuration, formatRating, getDifficultyColor } from '../utils/filterHelper';
-import { FiClock, FiBook, FiAward, FiPlay, FiClipboard } from 'react-icons/fi';
+import { FiClock, FiBook, FiAward, FiPlay, FiClipboard, FiLock, FiArrowLeft } from 'react-icons/fi';
+import StudentLayout from './StudentLayout';
 
 const CourseDetail = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
-    const { getCourseById, loading, error } = useDashboard();
+    const { 
+        getCourseById, 
+        enrollInCourse, 
+        getEnrollmentStatus,
+        currentEnrollment 
+    } = useDashboard();
     const [course, setCourse] = useState(null);
-    const [progress, setProgress] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [enrolling, setEnrolling] = useState(false);
 
     useEffect(() => {
-        const fetchCourseDetails = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getCourseById(courseId);
-                setCourse(data);
-                // Fetch student's progress if enrolled
-                if (data.isEnrolled) {
-                    const progressData = await dashboardService.getCourseProgress(courseId);
-                    setProgress(progressData.progress);
+                setLoading(true);
+                setError(null);
+
+                // Fetch course details
+                const courseResponse = await getCourseById(courseId);
+                if (courseResponse.success) {
+                    setCourse(courseResponse.data);
                 }
+
+                // Fetch enrollment status
+                await getEnrollmentStatus(courseId);
             } catch (err) {
-                console.error('Error fetching course:', err);
+                console.error('Error fetching course details:', err);
+                setError(err.message || 'Failed to load course');
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchCourseDetails();
-    }, [courseId, getCourseById]);
+        if (courseId) {
+            fetchData();
+        }
+    }, [courseId, getCourseById, getEnrollmentStatus]);
 
     const handleEnroll = async () => {
         try {
-            await dashboardService.enrollInCourse(courseId);
-            // Refresh course data to update enrollment status
-            const updatedCourse = await getCourseById(courseId);
-            setCourse(updatedCourse);
+            setEnrolling(true);
+            await enrollInCourse(courseId);
+            // Refresh enrollment status
+            await getEnrollmentStatus(courseId);
         } catch (err) {
             console.error('Error enrolling in course:', err);
+            setError(err.message || 'Failed to enroll in course');
+        } finally {
+            setEnrolling(false);
         }
     };
 
-    const handleStartContent = (contentId, type) => {
-        if (type === 'video') {
-            navigate(`/dashboard/videos/${contentId}`);
-        } else if (type === 'quiz') {
-            navigate(`/dashboard/quizzes/${contentId}`);
+    const handleStartContent = (contentId, type, item) => {
+        if (!currentEnrollment) {
+            setError('Please enroll in the course to access content');
+            return;
+        }
+        
+        // Clear any existing errors
+        setError(null);
+        
+        // Get the actual content ID and ensure it's not null
+        const actualContentId = item.contentId?._id || item.contentId;
+        
+        if (!actualContentId) {
+            setError('Content not available');
+            return;
+        }
+
+        console.log('Starting content:', { actualContentId, type, item });
+        
+        // Store current course state before navigation
+        localStorage.setItem('lastCourseState', JSON.stringify({
+            courseId,
+            contentType: type,
+            contentId: actualContentId
+        }));
+        
+        try {
+            if (type === 'video') {
+                const videoId = item.contentId?._id || item.contentId;
+                navigate(`/dashboard/videos/${videoId}`, { replace: false });
+            } else if (type === 'quiz') {
+                const quizId = item.contentId?._id || item.contentId;
+                navigate(`/dashboard/quizzes/${quizId}`, { replace: false });
+            }
+        } catch (err) {
+            console.error('Navigation error:', err);
+            setError('Failed to open content');
         }
     };
 
-    if (loading) return <div className="flex justify-center items-center h-96">Loading...</div>;
-    if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
-    if (!course) return <div className="text-center p-4">Course not found</div>;
+    // Add cleanup effect
+    useEffect(() => {
+        return () => {
+            // Clear any stored state when component unmounts
+            localStorage.removeItem('lastCourseState');
+        };
+    }, []);
+
+    // Add effect to handle back navigation
+    useEffect(() => {
+        const handlePopState = () => {
+            // Refresh course data when navigating back
+            if (courseId) {
+                fetchData();
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [courseId]);
+
+    // Extract fetchData function to be reusable
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Fetch course details
+            const courseResponse = await getCourseById(courseId);
+            if (courseResponse.success) {
+                setCourse(courseResponse.data);
+            }
+
+            // Fetch enrollment status
+            await getEnrollmentStatus(courseId);
+        } catch (err) {
+            console.error('Error fetching course details:', err);
+            setError(err.message || 'Failed to load course');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Move getContentStatus here
+    const getContentStatus = (contentId) => {
+        const progress = currentEnrollment?.contentProgress?.find(
+            p => p.contentId.toString() === contentId
+        );
+        
+        if (!progress) return 'Start';
+        if (progress.completed) return 'Review';
+        return `Continue (${progress.progress}%)`;
+    };
+
+    const handleBack = () => {
+        navigate('/dashboard');  // Navigate back to dashboard
+    };
+
+    // ... existing loading and error states ...
 
     return (
-        <div className="max-w-6xl mx-auto p-6">
-            {/* Course Header */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-                <div className="flex flex-wrap gap-4 mb-4">
-                    <span className="flex items-center gap-2">
-                        <FiClock className="text-gray-500" />
-                        {formatDuration(course.duration)}
-                    </span>
-                    <span className="flex items-center gap-2">
-                        <FiBook className="text-gray-500" />
-                        {course.contentCount} lessons
-                    </span>
-                    <span className={`flex items-center gap-2 ${getDifficultyColor(course.difficultyLevel)}`}>
-                        <FiAward />
-                        {course.difficultyLevel}
-                    </span>
-                    <span className="flex items-center gap-2">
-                        <span className="text-yellow-400">★</span>
-                        {formatRating(course.rating)}
-                    </span>
-                </div>
-                <p className="text-gray-600 mb-6">{course.description}</p>
-                {!course.isEnrolled ? (
+        <StudentLayout>
+            <div className="max-w-6xl mx-auto p-6">
+                {/* Back Button */}
+                <div className="mb-4">
                     <button
-                        onClick={handleEnroll}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                        onClick={handleBack}
+                        className="text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-2"
                     >
-                        Enroll Now
+                        <FiArrowLeft /> Back to Dashboard
                     </button>
-                ) : (
-                    <div className="bg-gray-100 p-4 rounded-md">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-700">Course Progress</span>
-                            <span className="text-blue-600 font-semibold">{progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                                className="bg-blue-600 h-2.5 rounded-full"
-                                style={{ width: `${progress}%` }}
-                            ></div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                </div>
 
-            {/* Course Content */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold mb-4">Course Content</h2>
-                <div className="space-y-4">
-                    {course.content?.map((item, index) => (
-                        <div
-                            key={item._id}
-                            className="border rounded-md p-4 hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    {item.type === 'video' ? (
-                                        <FiPlay className="text-blue-500" />
-                                    ) : (
-                                        <FiClipboard className="text-green-500" />
-                                    )}
-                                    <div>
-                                        <h3 className="font-semibold">{item.title}</h3>
-                                        {item.type === 'video' && (
-                                            <p className="text-sm text-gray-500">
-                                                {formatDuration(item.duration)}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                {course.isEnrolled && (
-                                    <button
-                                        onClick={() => handleStartContent(item._id, item.type)}
-                                        className="text-blue-600 hover:text-blue-700"
-                                    >
-                                        {item.completed ? 'Review' : 'Start'}
-                                    </button>
-                                )}
+                {/* Course Header */}
+                <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10">
+                    <h1 className="text-3xl font-bold text-white mb-4">{course?.title}</h1>
+                    <div className="flex flex-wrap gap-4 mb-4 text-white/60">
+                        {/* ... existing course info ... */}
+                    </div>
+                    <p className="text-white/80 mb-6">{course?.description}</p>
+
+                    {/* Enrollment Status & Progress */}
+                    {currentEnrollment ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between text-sm text-white/60">
+                                <span>Course Progress</span>
+                                <span>{currentEnrollment.progress}%</span>
                             </div>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
+                                    style={{ width: `${currentEnrollment.progress}%` }}
+                                />
+                            </div>
+                            {currentEnrollment.isCompleted && (
+                                <div className="text-center text-green-400 mt-2">
+                                    Course Completed! 🎉
+                                </div>
+                            )}
                         </div>
-                    ))}
+                    ) : (
+                        <button
+                            onClick={handleEnroll}
+                            disabled={enrolling}
+                            className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-yellow-300 hover:to-orange-400 focus:outline-none focus:ring-2 focus:ring-yellow-300/50 transform hover:scale-105 transition-all duration-300 disabled:opacity-50"
+                        >
+                            {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                        </button>
+                    )}
+                </div>
+
+                {/* Course Content */}
+                <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-6">Course Content</h2>
+                    <div className="space-y-4">
+                        {course?.sequence?.map((item, index) => (
+                            <div
+                                key={index}
+                                className={`bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10 transition-all duration-300 ${
+                                    currentEnrollment ? 'hover:bg-white/10 cursor-pointer' : 'opacity-75'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        {item.contentType === 'video' ? (
+                                            <FiPlay className="text-yellow-400" />
+                                        ) : (
+                                            <FiClipboard className="text-yellow-400" />
+                                        )}
+                                        <div>
+                                            <h3 className="text-white font-medium">
+                                                {item.contentId?.title || item.title}
+                                            </h3>
+                                            {item.duration && (
+                                                <p className="text-white/60 text-sm">{item.duration}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {currentEnrollment ? (
+                                        <button
+                                            onClick={() => handleStartContent(item.contentId, item.contentType, item)}
+                                            className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                                        >
+                                            {getContentStatus(item.contentId?._id || item.contentId)}
+                                        </button>
+                                    ) : (
+                                        <FiLock className="text-white/40" />
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+        </StudentLayout>
     );
 };
 

@@ -23,6 +23,10 @@ export const DashboardProvider = ({ children }) => {
         totalPages: 1,
         totalItems: 0
     });
+    const [enrollments, setEnrollments] = useState([]);
+    const [currentEnrollment, setCurrentEnrollment] = useState(null);
+    const [currentQuiz, setCurrentQuiz] = useState(null);
+    const [quizProgress, setQuizProgress] = useState(null);
 
     const fetchCourses = useCallback(async (page = 1) => {
         try {
@@ -93,12 +97,18 @@ export const DashboardProvider = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
+            console.log('DashboardContext: Fetching course with ID:', courseId);
             const response = await dashboardService.getCourseById(courseId);
-            setSelectedCourse(response.data);
-            return response.data;
+            console.log('DashboardContext: Received response:', response);
+            
+            if (response && response.success && response.data) {
+                return response;
+            } else {
+                throw new Error('Invalid course data format');
+            }
         } catch (err) {
-            console.error('Error fetching course:', err);
-            setError(err.message || 'Failed to fetch course');
+            console.error('DashboardContext: Error fetching course:', err);
+            setError(err.message);
             throw err;
         } finally {
             setLoading(false);
@@ -109,12 +119,126 @@ export const DashboardProvider = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
+            console.log('DashboardContext: Fetching video with ID:', videoId);
             const response = await dashboardService.getVideoById(videoId);
-            setSelectedVideo(response.data);
+            console.log('DashboardContext: Received response:', response);
+            return response;
+        } catch (err) {
+            console.error('DashboardContext: Error fetching video:', err);
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const enrollInCourse = useCallback(async (courseId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await dashboardService.enrollInCourse(courseId);
+            setCurrentEnrollment(response.data);
             return response.data;
         } catch (err) {
-            console.error('Error fetching video:', err);
-            setError(err.message || 'Failed to fetch video');
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const updateProgress = useCallback(async (courseId, contentId, progressData) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await dashboardService.updateContentProgress(courseId, contentId, progressData);
+            setCurrentEnrollment(response.data);
+            return response.data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const getEnrollmentStatus = useCallback(async (courseId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await dashboardService.getEnrollmentStatus(courseId);
+            setCurrentEnrollment(response.data);
+            return response.data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const getQuizById = useCallback(async (quizId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            console.log('DashboardContext: Fetching quiz with ID:', quizId);
+            const response = await dashboardService.getQuizById(quizId);
+            console.log('DashboardContext: Received response:', response);
+            
+            if (response && response.success) {
+                setCurrentQuiz(response.data);
+                return response;
+            } else {
+                throw new Error('Invalid quiz data format');
+            }
+        } catch (err) {
+            console.error('DashboardContext: Error fetching quiz:', err);
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const submitQuizAttempt = useCallback(async (quizId, answers) => {
+        try {
+            setLoading(true);
+            setError(null);
+            console.log('DashboardContext: Submitting quiz attempt:', { quizId, answers });
+            const response = await dashboardService.submitQuizAttempt(quizId, answers);
+            
+            if (response && response.success) {
+                // Update quiz progress after submission
+                await getQuizProgress(quizId);
+                return response;
+            } else {
+                throw new Error('Failed to submit quiz');
+            }
+        } catch (err) {
+            console.error('DashboardContext: Error submitting quiz:', err);
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const getQuizProgress = useCallback(async (quizId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            console.log('DashboardContext: Getting quiz progress:', quizId);
+            const response = await dashboardService.getQuizProgress(quizId);
+            
+            if (response && response.success) {
+                setQuizProgress(response.data);
+                return response;
+            } else {
+                throw new Error('Failed to get quiz progress');
+            }
+        } catch (err) {
+            console.error('DashboardContext: Error getting quiz progress:', err);
+            setError(err.message);
             throw err;
         } finally {
             setLoading(false);
@@ -171,7 +295,17 @@ export const DashboardProvider = ({ children }) => {
         fetchCourses,
         fetchVideos,
         getCourseById,
-        getVideoById
+        getVideoById,
+        enrollments,
+        currentEnrollment,
+        enrollInCourse,
+        updateProgress,
+        getEnrollmentStatus,
+        currentQuiz,
+        quizProgress,
+        getQuizById,
+        submitQuizAttempt,
+        getQuizProgress
     };
 
     return (

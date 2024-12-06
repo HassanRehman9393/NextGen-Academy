@@ -17,6 +17,7 @@ const dashboardRouter = require('./src/modules/studentDashboard/routes/dashboard
 const { quizRoutes } = require('./src/modules/quizzes');
 const forumRouter = require('./src/modules/discussion/routes/forumRoutes');
 const studentForumRouter = require('./src/modules/discussion/routes/studentForumRoutes');
+const enrollmentRoutes = require('./src/modules/courses/routes/enrollmentRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -50,6 +51,7 @@ app.use('/api/videos', authenticateToken, videoRouter);
 app.use('/api/quizzes', authenticateToken, quizRoutes);
 app.use('/api/courses', authenticateToken, courseRouter);
 app.use('/api/dashboard', authenticateToken, dashboardRouter);
+app.use('/api/enrollment', enrollmentRoutes);
 
 // Handle 404s
 app.use((req, res, next) => {

@@ -26,6 +26,9 @@ import Dashboard from './modules/studentDashboard/components/Dashboard';
 import StudentDashboardRoutes from './modules/studentDashboard/routes/StudentDashboardRoutes';
 import { DashboardProvider } from './modules/studentDashboard/context/DashboardContext';
 import StudentForumRoutes from './modules/discussion/routes/StudentForumRoutes';
+import CourseDetail from './modules/studentDashboard/components/CourseDetail';
+import VideoDetail from './modules/studentDashboard/components/VideoDetail';
+import QuizDetail from './modules/studentDashboard/components/QuizDetail';
 
 // Redirect based on user role
 const RoleBasedRedirect = () => {
@@ -76,9 +79,11 @@ function App() {
                         {/* Protected Student routes */}
                         <Route path="/dashboard" element={<StudentRoute />}>
                             <Route index element={<Dashboard />} />
-                            <Route path="courses/*" element={<StudentDashboardRoutes />} />
-                            <Route path="videos/*" element={<StudentDashboardRoutes />} />
-                            <Route path="quizzes/*" element={<StudentDashboardRoutes />} />
+                            <Route element={<StudentDashboardRoutes />}>
+                                <Route path="courses/:courseId" element={<CourseDetail />} />
+                                <Route path="videos/:videoId" element={<VideoDetail />} />
+                                <Route path="quizzes/:quizId" element={<QuizDetail />} />
+                            </Route>
                             <Route path="forums/*" element={<StudentForumRoutes />} />
                         </Route>
 

@@ -156,81 +156,166 @@ class DashboardService {
 
     async getCourseById(courseId) {
         try {
+            console.log('Service: Fetching course with ID:', courseId);
             const response = await this.axiosInstance.get(`/dashboard/courses/${courseId}`);
-            if (!response.data.success) {
-                throw new Error(response.data.message || 'Failed to fetch course');
+            console.log('Service: Raw response:', response);
+            
+            if (!response || !response.data) {
+                console.error('Service: No response data received');
+                throw new Error('No course data received');
             }
+
+            console.log('Service: Returning course data:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Error getting course by ID:', error);
+            console.error('Service: Error getting course by ID:', error);
             throw error;
         }
     }
 
     async getVideoById(videoId) {
         try {
+            console.log('Service: Fetching video with ID:', videoId);
             const response = await this.axiosInstance.get(`/dashboard/videos/${videoId}`);
-            if (!response.data.success) {
-                throw new Error(response.data.message || 'Failed to fetch video');
+            console.log('Service: Raw response:', response);
+            
+            if (!response || !response.data) {
+                console.error('Service: No response data received');
+                throw new Error('No video data received');
             }
-            return response.data;
-        } catch (error) {
-            console.error('Error getting video by ID:', error);
-            throw error;
-        }
-    }
 
-    async updateVideoProgress(videoId, progress) {
-        try {
-            const response = await this.axiosInstance.post(`/dashboard/videos/${videoId}/progress`, { progress });
-            if (!response.data.success) {
-                throw new Error(response.data.message || 'Failed to update video progress');
-            }
+            console.log('Service: Returning video data:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Error updating video progress:', error);
-            throw error;
-        }
-    }
-
-    async markVideoComplete(videoId) {
-        try {
-            const response = await this.axiosInstance.post(`/dashboard/videos/${videoId}/complete`);
-            if (!response.data.success) {
-                throw new Error(response.data.message || 'Failed to mark video as complete');
-            }
-            return response.data;
-        } catch (error) {
-            console.error('Error marking video as complete:', error);
-            throw error;
-        }
-    }
-
-    async getCourseProgress(courseId) {
-        try {
-            const response = await this.axiosInstance.get(`/dashboard/courses/${courseId}/progress`);
-            if (!response.data.success) {
-                throw new Error(response.data.message || 'Failed to get course progress');
-            }
-            return response.data;
-        } catch (error) {
-            console.error('Error getting course progress:', error);
+            console.error('Service: Error getting video by ID:', error);
             throw error;
         }
     }
 
     async enrollInCourse(courseId) {
         try {
-            const response = await this.axiosInstance.post(`/dashboard/courses/${courseId}/enroll`);
+            console.log('Enrolling in course:', courseId);
+            const response = await this.axiosInstance.post(`/enrollment/courses/${courseId}/enroll`);
+            
             if (!response.data.success) {
                 throw new Error(response.data.message || 'Failed to enroll in course');
             }
+            
             return response.data;
         } catch (error) {
             console.error('Error enrolling in course:', error);
             throw error;
         }
     }
+
+    async updateContentProgress(courseId, contentId, progressData) {
+        try {
+            console.log('Updating content progress:', { courseId, contentId, progressData });
+            const response = await this.axiosInstance.post(
+                `/enrollment/courses/${courseId}/content/${contentId}/progress`,
+                progressData
+            );
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to update progress');
+            }
+            
+            return response.data;
+        } catch (error) {
+            console.error('Error updating progress:', error);
+            throw error;
+        }
+    }
+
+    async getEnrollmentStatus(courseId) {
+        try {
+            console.log('Getting enrollment status for course:', courseId);
+            const response = await this.axiosInstance.get(`/enrollment/courses/${courseId}/enrollment`);
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to get enrollment status');
+            }
+            
+            return response.data;
+        } catch (error) {
+            console.error('Error getting enrollment status:', error);
+            throw error;
+        }
+    }
+
+    async getStudentEnrollments() {
+        try {
+            console.log('Getting all enrollments');
+            const response = await this.axiosInstance.get('/enrollment/enrollments');
+            
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to get enrollments');
+            }
+            
+            return response.data;
+        } catch (error) {
+            console.error('Error getting enrollments:', error);
+            throw error;
+        }
+    }
+
+    async getQuizById(quizId) {
+        try {
+            console.log('Service: Fetching quiz with ID:', quizId);
+            const response = await this.axiosInstance.get(`/dashboard/quizzes/${quizId}`);
+            console.log('Service: Raw response:', response);
+            
+            if (!response || !response.data) {
+                console.error('Service: No response data received');
+                throw new Error('No quiz data received');
+            }
+
+            console.log('Service: Returning quiz data:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Service: Error getting quiz by ID:', error);
+            throw error;
+        }
+    }
+
+    async submitQuizAttempt(quizId, answers) {
+        try {
+            console.log('Service: Submitting quiz attempt:', { quizId, answers });
+            const response = await this.axiosInstance.post(`/dashboard/quizzes/${quizId}/submit`, {
+                answers
+            });
+            
+            if (!response || !response.data) {
+                console.error('Service: No response data received');
+                throw new Error('Failed to submit quiz');
+            }
+
+            console.log('Service: Quiz submission response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Service: Error submitting quiz:', error);
+            throw error;
+        }
+    }
+
+    async getQuizProgress(quizId) {
+        try {
+            console.log('Service: Getting quiz progress:', quizId);
+            const response = await this.axiosInstance.get(`/dashboard/quizzes/${quizId}/progress`);
+            
+            if (!response || !response.data) {
+                console.error('Service: No response data received');
+                throw new Error('Failed to get quiz progress');
+            }
+
+            console.log('Service: Quiz progress response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Service: Error getting quiz progress:', error);
+            throw error;
+        }
+    }
+
 }
 
 // Create a singleton instance
