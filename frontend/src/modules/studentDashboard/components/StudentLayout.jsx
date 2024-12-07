@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaGraduationCap, FaVideo, FaBook, FaChalkboardTeacher, 
          FaComments, FaQuestionCircle, FaTachometerAlt, FaUserCircle, 
-         FaBars, FaTimes } from 'react-icons/fa';
+         FaBars, FaTimes, FaRobot } from 'react-icons/fa';  // Added FaRobot
 import { useAuth } from '../../../auth/context/AuthContext';
 
 const SidebarLink = ({ to, icon: Icon, text, isActive, onClick }) => (
@@ -98,6 +98,14 @@ const StudentLayout = ({ children }) => {
                         isActive={location.pathname.includes('/forums')}
                         onClick={closeSidebar}
                     />
+                    {/* Added Chatbot Link */}
+                    <SidebarLink 
+                        to="/dashboard/chatbot" 
+                        icon={FaRobot} 
+                        text="NextGen AI"
+                        isActive={location.pathname.includes('/chatbot')}
+                        onClick={closeSidebar}
+                    />
                 </nav>
             </div>
 
@@ -147,4 +155,4 @@ const StudentLayout = ({ children }) => {
     );
 };
 
-export default StudentLayout; 
+export default StudentLayout;

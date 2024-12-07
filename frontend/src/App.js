@@ -30,6 +30,9 @@ import CourseDetail from './modules/studentDashboard/components/CourseDetail';
 import VideoDetail from './modules/studentDashboard/components/VideoDetail';
 import QuizDetail from './modules/studentDashboard/components/QuizDetail';
 
+// Chatbot Components
+import ChatbotRoutes from './modules/chatbot/routes/ChatbotRoutes';
+
 // Redirect based on user role
 const RoleBasedRedirect = () => {
     const { user } = useAuth();
@@ -85,6 +88,7 @@ function App() {
                                 <Route path="quizzes/:quizId" element={<QuizDetail />} />
                             </Route>
                             <Route path="forums/*" element={<StudentForumRoutes />} />
+                            <Route path="chatbot/*" element={<ChatbotRoutes />} />
                         </Route>
 
                         {/* Catch-all redirect */}
