@@ -166,10 +166,15 @@ export const DashboardProvider = ({ children }) => {
         try {
             setLoading(true);
             setError(null);
+            console.log('Fetching enrollment status for course:', courseId);
             const response = await dashboardService.getEnrollmentStatus(courseId);
-            setCurrentEnrollment(response.data);
+            console.log('Enrollment status response:', response);
+            if (response.success) {
+                setCurrentEnrollment(response.data);
+            }
             return response.data;
         } catch (err) {
+            console.error('Error getting enrollment status:', err);
             setError(err.message);
             throw err;
         } finally {

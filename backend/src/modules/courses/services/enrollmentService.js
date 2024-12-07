@@ -1,5 +1,6 @@
 const Enrollment = require('../models/enrollmentModel');
 const Course = require('../models/courseModel');
+const mongoose = require('mongoose');
 
 class EnrollmentService {
     async enrollStudent(studentId, courseId) {
@@ -94,16 +95,39 @@ class EnrollmentService {
     async getEnrollmentStatus(studentId, courseId) {
         try {
             console.log('Getting enrollment status:', { studentId, courseId });
+            
+            // Validate ObjectId
+            if (!mongoose.Types.ObjectId.isValid(courseId)) {
+                throw new Error('Invalid course ID');
+            }
 
             const enrollment = await Enrollment.findOne({
                 student: studentId,
                 course: courseId
             })
-            .populate('contentProgress.contentId')
-            .populate('course');
+            .populate('course')
+            .lean();
 
             console.log('Found enrollment:', enrollment);
-            return enrollment;
+
+            // If no enrollment exists, create a default response
+            if (!enrollment) {
+                return {
+                    isEnrolled: false,
+                    isCompleted: false,
+                    progress: 0,
+                    contentProgress: []
+                };
+            }
+
+            // Calculate completion status
+            const isCompleted = enrollment.progress === 100;
+
+            return {
+                ...enrollment,
+                isEnrolled: true,
+                isCompleted
+            };
         } catch (error) {
             console.error('Error in getEnrollmentStatus:', error);
             throw error;

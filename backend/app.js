@@ -8,6 +8,7 @@ const connectDB = require('./src/config/database');
 const cors = require('cors');
 require('dotenv').config();
 const { authenticateToken } = require('./src/modules/auth/middleware/authMiddleware');
+const { requireStudent } = require('./src/modules/auth/middleware/roleMiddleware');
 
 // Import routes
 const authRouter = require('./src/modules/auth/routes/authRoutes');
@@ -19,6 +20,7 @@ const forumRouter = require('./src/modules/discussion/routes/forumRoutes');
 const studentForumRouter = require('./src/modules/discussion/routes/studentForumRoutes');
 const enrollmentRoutes = require('./src/modules/courses/routes/enrollmentRoutes');
 const chatbotRoutes = require('./src/modules/chatbot/routes/chatbotRoutes');
+const ratingRoutes = require('./src/modules/courses/routes/ratingRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -54,6 +56,7 @@ app.use('/api/courses', authenticateToken, courseRouter);
 app.use('/api/dashboard', authenticateToken, dashboardRouter);
 app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 // Handle 404s
 app.use((req, res, next) => {

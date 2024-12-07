@@ -4,6 +4,7 @@ import { useDashboard } from '../context/DashboardContext';
 import { formatDuration, formatRating, getDifficultyColor } from '../utils/filterHelper';
 import { FiClock, FiBook, FiAward, FiPlay, FiClipboard, FiLock, FiArrowLeft } from 'react-icons/fi';
 import StudentLayout from './StudentLayout';
+import CourseRatings from './CourseRatings';
 
 const CourseDetail = () => {
     const { courseId } = useParams();
@@ -25,14 +26,18 @@ const CourseDetail = () => {
                 setLoading(true);
                 setError(null);
 
-                // Fetch course details
-                const courseResponse = await getCourseById(courseId);
+                // Fetch course details and enrollment status in parallel
+                const [courseResponse, enrollmentResponse] = await Promise.all([
+                    getCourseById(courseId),
+                    getEnrollmentStatus(courseId)
+                ]);
+
                 if (courseResponse.success) {
                     setCourse(courseResponse.data);
                 }
 
-                // Fetch enrollment status
-                await getEnrollmentStatus(courseId);
+                console.log('Enrollment response:', enrollmentResponse);
+
             } catch (err) {
                 console.error('Error fetching course details:', err);
                 setError(err.message || 'Failed to load course');
@@ -45,6 +50,11 @@ const CourseDetail = () => {
             fetchData();
         }
     }, [courseId, getCourseById, getEnrollmentStatus]);
+
+    // Add debug logging
+    useEffect(() => {
+        console.log('CourseDetail - Current enrollment:', currentEnrollment);
+    }, [currentEnrollment]);
 
     const handleEnroll = async () => {
         try {
@@ -254,6 +264,14 @@ const CourseDetail = () => {
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* Course Ratings */}
+                <div className="mt-8">
+                    <CourseRatings 
+                        courseId={courseId} 
+                        enrollment={currentEnrollment}
+                    />
                 </div>
             </div>
         </StudentLayout>
