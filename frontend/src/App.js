@@ -14,6 +14,7 @@ import ResetPassword from './auth/components/ResetPassword';
 import VerifyEmail from './auth/components/VerifyEmail';
 
 // Instructor Components
+import InstructorRoutes from './modules/instructor/routes/InstructorRoutes';
 import InstructorDashboard from './modules/instructor/components/InstructorDashboard';
 import VideoDashboard from './modules/videoManagement/components/VideoDashboard';
 import { VideoProvider } from './modules/videoManagement/context/VideoContext';
@@ -54,25 +55,12 @@ function App() {
                             <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
                             {/* Protected Instructor routes */}
-                            <Route path="/instructor" element={<InstructorRoute />}>
-                                <Route index element={<InstructorDashboard />} />
-                                <Route 
-                                    path="videos/*" 
-                                    element={
-                                        <VideoProvider>
-                                            <VideoDashboard />
-                                        </VideoProvider>
-                                    } 
-                                />
-                                <Route path="quizzes/*" element={<QuizRoutes />} />
-                                <Route path="courses/*" element={<CourseRoutes />} />
-                                <Route path="forums/*" element={<DiscussionRoutes />} />
-                                <Route path="analytics" element={<AnalyticsDashboard />} />
-                                <Route path="analytics/:courseId" element={<Analytics />} />
+                            <Route path="/instructor/*" element={<InstructorRoute />}>
+                                <Route path="*" element={<InstructorRoutes />} />
                             </Route>
 
                             {/* Protected Student routes */}
-                            <Route path="/dashboard" element={<StudentRoute />}>
+                            <Route path="/dashboard/*" element={<StudentRoute />}>
                                 <Route index element={<Dashboard />} />
                                 <Route element={<StudentDashboardRoutes />}>
                                     <Route path="courses/:courseId" element={<CourseDetail />} />

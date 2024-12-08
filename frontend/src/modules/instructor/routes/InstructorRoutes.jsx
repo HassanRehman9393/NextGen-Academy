@@ -1,15 +1,14 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { AnalyticsProvider } from '../analytics/context/AnalyticsContext';
+import { AnalyticsProvider } from '../../analytics/context/AnalyticsContext';
 import InstructorDashboard from '../components/InstructorDashboard';
 import VideoDashboard from '../../videoManagement/components/VideoDashboard';
 import { VideoProvider } from '../../videoManagement/context/VideoContext';
 import QuizRoutes from '../../quizManagement/routes/QuizRoutes';
 import CourseRoutes from '../../courseManagement/routes';
 import DiscussionRoutes from '../../discussion/routes/DiscussionRoutes';
-import Analytics from '../../analytics/components/Analytics';
-import AnalyticsDashboard from '../../analytics/components/AnalyticsDashboard';
 import AnalyticsRoutes from '../../analytics/routes/AnalyticsRoutes';
+import RatingManagementRoutes from '../../ratings/routes/RatingManagementRoutes';
 
 const InstructorRoutes = () => {
     return (
@@ -28,6 +27,7 @@ const InstructorRoutes = () => {
                 <Route path="courses/*" element={<CourseRoutes />} />
                 <Route path="forums/*" element={<DiscussionRoutes />} />
                 <Route path="analytics/*" element={<AnalyticsRoutes />} />
+                <Route path="ratings/*" element={<RatingManagementRoutes />} />
             </Routes>
         </AnalyticsProvider>
     );

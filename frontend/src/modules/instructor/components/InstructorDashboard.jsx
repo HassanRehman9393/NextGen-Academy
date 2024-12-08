@@ -7,7 +7,8 @@ import {
     FaComments, 
     FaChalkboardTeacher,
     FaGraduationCap,
-    FaChartLine
+    FaChartLine,
+    FaStar
 } from 'react-icons/fa';
 import { useAuth } from '../../../auth/context/AuthContext';
 
@@ -83,19 +84,19 @@ const InstructorDashboard = () => {
                     />
 
                     <DashboardCard
-                        title="Student Feedback"
-                        icon={FaChalkboardTeacher}
-                        description="View and respond to student feedback. Track course ratings and reviews."
-                        link="/instructor/feedback"
-                        color="hover:border-orange-400/30"
-                    />
-
-                    <DashboardCard
                         title="Analytics"
                         icon={FaChartLine}
                         description="View detailed analytics and generate reports for your courses."
                         link="/instructor/analytics"
                         color="hover:border-red-400/30"
+                    />
+
+                    <DashboardCard
+                        title="Course Ratings"
+                        icon={FaStar}
+                        description="View and respond to student ratings and feedback for your courses."
+                        link="/instructor/ratings"
+                        color="hover:border-yellow-400/30"
                     />
                 </div>
 
