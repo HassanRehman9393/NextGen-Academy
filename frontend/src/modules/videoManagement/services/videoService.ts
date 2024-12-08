@@ -16,41 +16,64 @@ interface VideoData {
 }
 
 class VideoService {
+    private static instance: VideoService;
+    private refreshAttempted: boolean = false;
+
     constructor() {
-        // Add response interceptor for token refresh
         axios.interceptors.response.use(
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
 
-                if (error.response?.status === 401 && !originalRequest._retry) {
-                    originalRequest._retry = true;
+                // Check if we should attempt token refresh
+                if (error.response?.status === 401 && !this.refreshAttempted) {
+                    this.refreshAttempted = true; // Prevent multiple refresh attempts
 
                     try {
+                        const token = localStorage.getItem('token');
                         const refreshToken = localStorage.getItem('refreshToken');
-                        if (!refreshToken) {
-                            throw new Error('No refresh token available');
+
+                        if (!token || !refreshToken) {
+                            throw new Error('Authentication required');
                         }
 
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-                            refreshToken
+                        const response = await axios.post(`${API_URL}/auth/refresh-token`, {}, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'x-refresh-token': refreshToken,
+                                'Content-Type': 'application/json'
+                            }
                         });
 
-                        if (response.data?.success) {
-                            const { token, refreshToken: newRefreshToken } = response.data.data;
+                        if (response.data.success && response.data.token) {
+                            // Update stored tokens
+                            localStorage.setItem('token', response.data.token);
+                            if (response.data.refreshToken) {
+                                localStorage.setItem('refreshToken', response.data.refreshToken);
+                            }
 
-                            localStorage.setItem('token', `Bearer ${token}`);
-                            localStorage.setItem('refreshToken', newRefreshToken);
-
-                            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                            // Update the original request headers
+                            originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
+                            
+                            // Reset refresh attempt flag
+                            this.refreshAttempted = false;
+                            
                             return axios(originalRequest);
                         }
                     } catch (refreshError) {
-                        console.error('Token refresh failed:', refreshError);
-                        localStorage.clear();
-                        window.location.href = '/login';
+                        this.refreshAttempted = false; // Reset flag
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = '/login?session=expired';
                         return Promise.reject(refreshError);
                     }
+                }
+
+                // If refresh token failed or other error
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('refreshToken');
+                    window.location.href = '/login?session=expired';
                 }
                 return Promise.reject(error);
             }

@@ -4,52 +4,58 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 class AnalyticsService {
     constructor() {
-        // Add response interceptor for token refresh
+        this.refreshAttempted = false;
+        this.initializeInterceptor();
+    }
+
+    initializeInterceptor() {
         axios.interceptors.response.use(
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
 
-                // If error is 401 and we haven't tried refreshing token yet
-                if (error.response?.status === 401 && !originalRequest._retry) {
+                // Only attempt refresh once and if it's a 401 error
+                if (error.response?.status === 401 && !originalRequest._retry && !this.refreshAttempted) {
                     originalRequest._retry = true;
+                    this.refreshAttempted = true;
 
                     try {
-                        const token = localStorage.getItem('token');
+                        const token = localStorage.getItem('token')?.replace('Bearer ', '');
                         const refreshToken = localStorage.getItem('refreshToken');
 
                         if (!token || !refreshToken) {
-                            throw new Error('Authentication required');
+                            throw new Error('No tokens available');
                         }
 
-                        // Try to refresh the token
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, null, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'x-refresh-token': refreshToken
+                        const response = await axios.post(
+                            `${API_URL}/auth/refresh-token`,
+                            {},
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'x-refresh-token': refreshToken,
+                                    'Content-Type': 'application/json'
+                                }
                             }
-                        });
+                        );
 
-                        if (response.data.token) {
-                            // Update stored tokens
-                            localStorage.setItem('token', response.data.token);
-                            if (response.data.refreshToken) {
-                                localStorage.setItem('refreshToken', response.data.refreshToken);
-                            }
+                        if (response.data.success && response.data.token) {
+                            const newToken = response.data.token;
+                            const newRefreshToken = response.data.refreshToken;
 
-                            // Update the failed request's authorization header
-                            originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
-                            originalRequest.headers['x-refresh-token'] = response.data.refreshToken || refreshToken;
+                            localStorage.setItem('token', `Bearer ${newToken}`);
+                            localStorage.setItem('refreshToken', newRefreshToken);
 
-                            // Retry the original request
+                            // Update authorization header
+                            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                            this.refreshAttempted = false;
                             return axios(originalRequest);
                         }
                     } catch (refreshError) {
-                        if (refreshError.response?.status === 401) {
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('refreshToken');
-                            window.location.href = '/login?session=expired';
-                        }
+                        this.refreshAttempted = false;
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = '/login?session=expired';
                         return Promise.reject(refreshError);
                     }
                 }
@@ -60,15 +66,11 @@ class AnalyticsService {
 
     getAuthHeaders() {
         const token = localStorage.getItem('token');
-        const refreshToken = localStorage.getItem('refreshToken');
-
-        if (!token || !refreshToken) {
-            throw new Error('Authentication required');
+        if (!token) {
+            throw new Error('No authentication token found');
         }
-
         return {
-            'Authorization': `Bearer ${token}`,
-            'x-refresh-token': refreshToken,
+            'Authorization': token,
             'Content-Type': 'application/json'
         };
     }
@@ -82,9 +84,8 @@ class AnalyticsService {
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login?session=expired';
+                // Let the interceptor handle 401 errors
+                throw error;
             }
             throw new Error(error.response?.data?.message || 'Failed to fetch analytics');
         }
@@ -102,11 +103,10 @@ class AnalyticsService {
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login?session=expired';
+                // Let the interceptor handle 401 errors
+                throw error;
             }
-            throw new Error(error.response?.data?.message || 'Failed to download PDF report');
+            throw new Error('Failed to download PDF report');
         }
     }
 
@@ -122,11 +122,10 @@ class AnalyticsService {
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login?session=expired';
+                // Let the interceptor handle 401 errors
+                throw error;
             }
-            throw new Error(error.response?.data?.message || 'Failed to download Excel report');
+            throw new Error('Failed to download Excel report');
         }
     }
 
@@ -139,11 +138,27 @@ class AnalyticsService {
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                window.location.href = '/login?session=expired';
+                // Let the interceptor handle 401 errors
+                throw error;
             }
             throw new Error(error.response?.data?.message || 'Failed to fetch overview analytics');
+        }
+    }
+
+    async updateAnalytics(courseId, analyticsData) {
+        try {
+            const response = await axios.put(
+                `${API_URL}/analytics/course/${courseId}`,
+                analyticsData,
+                { headers: this.getAuthHeaders() }
+            );
+            return response.data;
+        } catch (error) {
+            if (error.response?.status === 401) {
+                // Let the interceptor handle 401 errors
+                throw error;
+            }
+            throw new Error(error.response?.data?.message || 'Failed to update analytics');
         }
     }
 }

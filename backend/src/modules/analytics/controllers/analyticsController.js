@@ -57,6 +57,24 @@ class AnalyticsController {
             });
         }
     }
+
+    async updateAnalytics(req, res) {
+        try {
+            const { courseId } = req.params;
+            const analytics = await analyticsService.updateAnalytics(courseId, req.body);
+            
+            res.json({
+                success: true,
+                data: analytics
+            });
+        } catch (error) {
+            console.error('Error in updateAnalytics controller:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
 }
 
 module.exports = new AnalyticsController(); 

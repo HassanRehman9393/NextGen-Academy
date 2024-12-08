@@ -4,36 +4,58 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 class CourseService {
     constructor() {
-        // Add response interceptor for token refresh
+        this.refreshAttempted = false;
+        this.initializeInterceptor();
+    }
+
+    initializeInterceptor() {
         axios.interceptors.response.use(
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
 
-                if (error.response?.status === 401 && !originalRequest._retry) {
+                // Only attempt refresh once and if it's a 401 error
+                if (error.response?.status === 401 && !originalRequest._retry && !this.refreshAttempted) {
                     originalRequest._retry = true;
+                    this.refreshAttempted = true;
 
                     try {
+                        const token = localStorage.getItem('token')?.replace('Bearer ', '');
                         const refreshToken = localStorage.getItem('refreshToken');
-                        if (!refreshToken) {
-                            throw new Error('No refresh token available');
+
+                        if (!token || !refreshToken) {
+                            throw new Error('No tokens available');
                         }
 
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-                            refreshToken
-                        });
+                        const response = await axios.post(
+                            `${API_URL}/auth/refresh-token`,
+                            {},
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'x-refresh-token': refreshToken,
+                                    'Content-Type': 'application/json'
+                                }
+                            }
+                        );
 
-                        if (response.data?.success) {
-                            const { token, refreshToken: newRefreshToken } = response.data.data;
-                            localStorage.setItem('token', `Bearer ${token}`);
+                        if (response.data.success && response.data.token) {
+                            const newToken = response.data.token;
+                            const newRefreshToken = response.data.refreshToken;
+
+                            localStorage.setItem('token', `Bearer ${newToken}`);
                             localStorage.setItem('refreshToken', newRefreshToken);
-                            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+
+                            // Update authorization header
+                            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                            this.refreshAttempted = false;
                             return axios(originalRequest);
                         }
                     } catch (refreshError) {
-                        console.error('Token refresh failed:', refreshError);
-                        localStorage.clear();
-                        window.location.href = '/login';
+                        this.refreshAttempted = false;
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = '/login?session=expired';
                         return Promise.reject(refreshError);
                     }
                 }
@@ -48,18 +70,26 @@ class CourseService {
             throw new Error('No authentication token found');
         }
         return {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': token,
             'Content-Type': 'application/json'
         };
     }
 
     async getCourses() {
         try {
-            const response = await axios.get(`${API_URL}/courses`, {
-                headers: this.getAuthHeaders()
-            });
+            const response = await axios.get(
+                `${API_URL}/courses`,
+                { 
+                    headers: this.getAuthHeaders(),
+                    skipAuthRefresh: false // Allow refresh attempt for this request
+                }
+            );
             return response.data;
         } catch (error) {
+            if (error.response?.status === 401) {
+                // Let the interceptor handle 401 errors
+                throw error;
+            }
             throw new Error(error.response?.data?.message || 'Failed to fetch courses');
         }
     }

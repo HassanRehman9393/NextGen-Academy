@@ -105,66 +105,87 @@ class AuthController {
     // Refresh token handler
     async refreshToken(req, res) {
         try {
-            const { refreshToken } = req.body;
+            const authHeader = req.headers.authorization;
+            const refreshToken = req.headers['x-refresh-token'];
 
-            if (!refreshToken) {
+            if (!authHeader || !refreshToken) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Refresh token is required'
+                    message: 'Authentication required'
                 });
             }
 
-            // Verify refresh token exists in database and is not expired
-            const storedToken = await Token.findOne({ 
-                token: refreshToken,
-                type: 'refresh',
-                expiresAt: { $gt: new Date() }
-            });
+            const token = authHeader.split(' ')[1];
 
-            if (!storedToken) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid or expired refresh token'
+            try {
+                // First verify the access token to get user info (ignore expiration)
+                const decodedAccess = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+                
+                // Verify refresh token exists and is valid
+                const storedToken = await Token.findOne({ 
+                    token: refreshToken,
+                    type: 'refresh',
+                    userId: decodedAccess.userId,
+                    expiresAt: { $gt: new Date() }
                 });
-            }
 
-            // Verify refresh token
-            const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
-            const user = await User.findById(decoded.userId);
-
-            if (!user) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'User not found'
-                });
-            }
-
-            // Generate new tokens
-            const { accessToken: newAccessToken, refreshToken: newRefreshToken } = 
-                this.generateTokens(user);
-
-            // Calculate new expiration date
-            const newExpiresAt = new Date();
-            newExpiresAt.setDate(newExpiresAt.getDate() + 7);
-
-            // Update refresh token in database
-            await Token.findByIdAndUpdate(storedToken._id, {
-                token: newRefreshToken,
-                expiresAt: newExpiresAt
-            });
-
-            res.json({
-                success: true,
-                data: {
-                    token: newAccessToken,
-                    refreshToken: newRefreshToken
+                if (!storedToken) {
+                    return res.status(401).json({
+                        success: false,
+                        message: 'Invalid or expired refresh token'
+                    });
                 }
-            });
+
+                // Get user
+                const user = await User.findById(decodedAccess.userId);
+                if (!user) {
+                    return res.status(401).json({
+                        success: false,
+                        message: 'User not found'
+                    });
+                }
+
+                // Generate new tokens
+                const accessToken = jwt.sign(
+                    { 
+                        userId: user._id,
+                        email: user.email,
+                        roles: user.roles 
+                    },
+                    process.env.JWT_SECRET,
+                    { expiresIn: '15m' }
+                );
+
+                const newRefreshToken = jwt.sign(
+                    { userId: user._id },
+                    process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
+                    { expiresIn: '7d' }
+                );
+
+                // Update refresh token in database
+                await Token.findByIdAndUpdate(storedToken._id, {
+                    token: newRefreshToken,
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                });
+
+                return res.json({
+                    success: true,
+                    token: accessToken,
+                    refreshToken: newRefreshToken
+                });
+
+            } catch (verifyError) {
+                console.error('Token verification failed:', verifyError);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid tokens'
+                });
+            }
         } catch (error) {
-            console.error('Refresh token error:', error);
-            res.status(401).json({
+            console.error('Token refresh error:', error);
+            return res.status(401).json({
                 success: false,
-                message: 'Invalid refresh token'
+                message: 'Token refresh failed'
             });
         }
     }

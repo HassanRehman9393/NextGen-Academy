@@ -15,8 +15,9 @@ class AnalyticsService {
             }
 
             // Check if analytics need updating (older than 1 hour)
-            if (Date.now() - analytics.lastUpdated > 3600000) {
-                analytics = await this.updateAnalytics(courseId, analytics);
+            const oneHourAgo = new Date(Date.now() - 3600000);
+            if (analytics.lastUpdated < oneHourAgo) {
+                analytics = await this.generateAnalytics(courseId);
             }
 
             return analytics;
@@ -48,12 +49,31 @@ class AnalyticsService {
                 totalRatings: ratings.length,
                 discussionStats: this.calculateDiscussionStats(forums),
                 quizStats: await this.calculateQuizStats(quizzes),
-                weeklyEngagement: await this.calculateWeeklyEngagement(courseId)
+                weeklyEngagement: await this.calculateWeeklyEngagement(courseId),
+                lastUpdated: new Date()
             });
 
-            return await analytics.save();
+            await analytics.save();
+            return analytics;
         } catch (error) {
             console.error('Error generating analytics:', error);
+            throw error;
+        }
+    }
+
+    async updateAnalytics(courseId, analyticsData) {
+        try {
+            const analytics = await Analytics.findOneAndUpdate(
+                { courseId },
+                { 
+                    ...analyticsData,
+                    lastUpdated: new Date()
+                },
+                { new: true, upsert: true }
+            );
+            return analytics;
+        } catch (error) {
+            console.error('Error updating analytics:', error);
             throw error;
         }
     }
@@ -69,7 +89,7 @@ class AnalyticsService {
             totalThreads: forums.length,
             totalComments: forums.reduce((acc, forum) => acc + forum.comments.length, 0),
             activeParticipants: new Set(forums.flatMap(f => 
-                [f.authorId, ...f.comments.map(c => c.authorId)]
+                [f.instructorId, ...f.comments.map(c => c.studentId)]
             )).size
         };
     }

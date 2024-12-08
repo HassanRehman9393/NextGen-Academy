@@ -37,7 +37,22 @@ app.use(cors({
 
 // Middleware
 app.use(logger('dev'));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+    limit: '50mb',
+    verify: (req, res, buf) => {
+        try {
+            if (buf.length) {
+                JSON.parse(buf);
+            }
+        } catch (e) {
+            res.status(400).json({ 
+                success: false, 
+                message: 'Invalid JSON payload' 
+            });
+            throw Error('Invalid JSON');
+        }
+    }
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -77,6 +92,17 @@ app.use((err, req, res, next) => {
         message: err.message || 'Internal server error',
         error: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+});
+
+// Add error handler for JSON parsing
+app.use((error, req, res, next) => {
+    if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid JSON payload' 
+        });
+    }
+    next();
 });
 
 // Port configuration
