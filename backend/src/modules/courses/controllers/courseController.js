@@ -1,6 +1,10 @@
 const CourseService = require('../services/courseService');
 const { validateCourse } = require('../utils/validation');
 const SequenceUtils = require('../utils/sequenceUtils');
+const mongoose = require('mongoose');
+const Course = require('../models/courseModel');
+const Enrollment = require('../../courses/models/enrollmentModel');
+const Rating = require('../../courses/models/ratingModel');
 
 class CourseController {
     async createCourse(req, res) {
@@ -46,7 +50,19 @@ class CourseController {
 
     async getCourseById(req, res) {
         try {
-            const course = await CourseService.getCourseById(req.params.id, req.user._id);
+            const { id } = req.params;
+            
+            // Validate ObjectId
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid course ID format'
+                });
+            }
+
+            const course = await Course.findById(id)
+                .populate('instructor', 'firstName lastName');
+
             if (!course) {
                 return res.status(404).json({
                     success: false,
@@ -60,10 +76,9 @@ class CourseController {
             });
         } catch (error) {
             console.error('Get course by ID error:', error);
-            const status = error.message.includes('not found') ? 404 : 500;
-            res.status(status).json({
+            res.status(500).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Failed to fetch course'
             });
         }
     }
@@ -203,6 +218,56 @@ class CourseController {
             res.status(400).json({
                 success: false,
                 message: error.message || 'Failed to reorder content'
+            });
+        }
+    }
+
+    async getInstructorCourses(req, res) {
+        try {
+            console.log('Getting courses for instructor:', req.user._id);
+            
+            const courses = await Course.find({ instructor: req.user._id })
+                .populate('instructor', 'firstName lastName')
+                .sort('-createdAt');
+
+            console.log('Found courses:', courses.length);
+
+            // Get enrollment counts and ratings for each course
+            const coursesWithStats = await Promise.all(courses.map(async (course) => {
+                try {
+                    const [enrollmentCount, ratings] = await Promise.all([
+                        Enrollment.countDocuments({ course: course._id }),
+                        Rating.find({ course: course._id })
+                    ]);
+
+                    const averageRating = ratings.length > 0 
+                        ? ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length 
+                        : 0;
+
+                    return {
+                        ...course.toObject(),
+                        enrollmentCount,
+                        averageRating: parseFloat(averageRating.toFixed(1))
+                    };
+                } catch (err) {
+                    console.error(`Error processing course ${course._id}:`, err);
+                    return {
+                        ...course.toObject(),
+                        enrollmentCount: 0,
+                        averageRating: 0
+                    };
+                }
+            }));
+
+            res.json({
+                success: true,
+                data: coursesWithStats
+            });
+        } catch (error) {
+            console.error('Error in getInstructorCourses:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to fetch instructor courses'
             });
         }
     }

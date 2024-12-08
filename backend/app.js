@@ -21,6 +21,7 @@ const studentForumRouter = require('./src/modules/discussion/routes/studentForum
 const enrollmentRoutes = require('./src/modules/courses/routes/enrollmentRoutes');
 const chatbotRoutes = require('./src/modules/chatbot/routes/chatbotRoutes');
 const ratingRoutes = require('./src/modules/courses/routes/ratingRoutes');
+const analyticsRoutes = require('./src/modules/analytics/routes/analyticsRoutes');
 
 // Connect to MongoDB
 connectDB();
@@ -57,6 +58,7 @@ app.use('/api/dashboard', authenticateToken, dashboardRouter);
 app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Handle 404s
 app.use((req, res, next) => {

@@ -8,6 +8,9 @@ const { requireInstructor } = require('../../auth/middleware/roleMiddleware');
 router.use(authenticateToken);
 router.use(requireInstructor);
 
+// Get instructor courses route (must be before /:id route)
+router.get('/instructor/courses', CourseController.getInstructorCourses);
+
 // Course CRUD routes
 router.post('/', CourseController.createCourse);
 router.get('/', CourseController.getCourses);

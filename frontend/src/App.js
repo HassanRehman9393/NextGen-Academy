@@ -20,6 +20,8 @@ import { VideoProvider } from './modules/videoManagement/context/VideoContext';
 import QuizRoutes from './modules/quizManagement/routes/QuizRoutes';
 import CourseRoutes from './modules/courseManagement/routes';
 import DiscussionRoutes from './modules/discussion/routes/DiscussionRoutes';
+import Analytics from './modules/analytics/components/Analytics';
+import AnalyticsDashboard from './modules/analytics/components/AnalyticsDashboard';
 
 // Student Components
 import Dashboard from './modules/studentDashboard/components/Dashboard';
@@ -33,68 +35,59 @@ import QuizDetail from './modules/studentDashboard/components/QuizDetail';
 // Chatbot Components
 import ChatbotRoutes from './modules/chatbot/routes/ChatbotRoutes';
 
-// Redirect based on user role
-const RoleBasedRedirect = () => {
-    const { user } = useAuth();
-    
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
-    
-    if (user.roles.includes('instructor')) {
-        return <Navigate to="/instructor" replace />;
-    }
-    
-    return <Navigate to="/dashboard" replace />;
-};
+// Analytics Components
+import { AnalyticsProvider } from './modules/analytics/context/AnalyticsContext';
 
 function App() {
     return (
         <AuthProvider>
             <DashboardProvider>
-                <div className="App">
-                    <Routes>
-                        {/* Public routes */}
-                        <Route path="/" element={<Welcome />} />
-                        <Route path="/" element={<RoleBasedRedirect />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/reset-password/:token" element={<ResetPassword />} />
-                        <Route path="/verify-email/:token" element={<VerifyEmail />} />
+                <AnalyticsProvider>
+                    <div className="App">
+                        <Routes>
+                            {/* Public routes */}
+                            <Route path="/" element={<Welcome />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/reset-password/:token" element={<ResetPassword />} />
+                            <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
-                        {/* Protected Instructor routes */}
-                        <Route path="/instructor" element={<InstructorRoute />}>
-                            <Route index element={<InstructorDashboard />} />
-                            <Route 
-                                path="videos/*" 
-                                element={
-                                    <VideoProvider>
-                                        <VideoDashboard />
-                                    </VideoProvider>
-                                } 
-                            />
-                            <Route path="quizzes/*" element={<QuizRoutes />} />
-                            <Route path="courses/*" element={<CourseRoutes />} />
-                            <Route path="forums/*" element={<DiscussionRoutes />} />
-                        </Route>
-
-                        {/* Protected Student routes */}
-                        <Route path="/dashboard" element={<StudentRoute />}>
-                            <Route index element={<Dashboard />} />
-                            <Route element={<StudentDashboardRoutes />}>
-                                <Route path="courses/:courseId" element={<CourseDetail />} />
-                                <Route path="videos/:videoId" element={<VideoDetail />} />
-                                <Route path="quizzes/:quizId" element={<QuizDetail />} />
+                            {/* Protected Instructor routes */}
+                            <Route path="/instructor" element={<InstructorRoute />}>
+                                <Route index element={<InstructorDashboard />} />
+                                <Route 
+                                    path="videos/*" 
+                                    element={
+                                        <VideoProvider>
+                                            <VideoDashboard />
+                                        </VideoProvider>
+                                    } 
+                                />
+                                <Route path="quizzes/*" element={<QuizRoutes />} />
+                                <Route path="courses/*" element={<CourseRoutes />} />
+                                <Route path="forums/*" element={<DiscussionRoutes />} />
+                                <Route path="analytics" element={<AnalyticsDashboard />} />
+                                <Route path="analytics/:courseId" element={<Analytics />} />
                             </Route>
-                            <Route path="forums/*" element={<StudentForumRoutes />} />
-                            <Route path="chatbot/*" element={<ChatbotRoutes />} />
-                        </Route>
 
-                        {/* Catch-all redirect */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </div>
+                            {/* Protected Student routes */}
+                            <Route path="/dashboard" element={<StudentRoute />}>
+                                <Route index element={<Dashboard />} />
+                                <Route element={<StudentDashboardRoutes />}>
+                                    <Route path="courses/:courseId" element={<CourseDetail />} />
+                                    <Route path="videos/:videoId" element={<VideoDetail />} />
+                                    <Route path="quizzes/:quizId" element={<QuizDetail />} />
+                                </Route>
+                                <Route path="forums/*" element={<StudentForumRoutes />} />
+                                <Route path="chatbot/*" element={<ChatbotRoutes />} />
+                            </Route>
+
+                            {/* Catch-all redirect */}
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </div>
+                </AnalyticsProvider>
             </DashboardProvider>
         </AuthProvider>
     );

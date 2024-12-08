@@ -48,7 +48,7 @@ class CourseService {
             throw new Error('No authentication token found');
         }
         return {
-            'Authorization': token,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         };
     }
@@ -146,6 +146,19 @@ class CourseService {
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Failed to reorder content');
+        }
+    }
+
+    async getInstructorCourses() {
+        try {
+            const response = await axios.get(
+                `${API_URL}/courses/instructor/courses`,
+                { headers: this.getAuthHeaders() }
+            );
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching instructor courses:', error);
+            throw new Error(error.response?.data?.message || 'Failed to fetch instructor courses');
         }
     }
 }
