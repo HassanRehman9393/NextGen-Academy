@@ -1,5 +1,5 @@
-const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
 const User = require('../models/userModel');
 const Token = require('../models/tokenModel');
 const TokenUtils = require('../utils/tokenUtils');
@@ -91,22 +91,22 @@ class AuthService {
     }
 
     // Send verification email
-    async sendVerificationEmail(user, verificationToken) {
+    async sendVerificationEmail(email, firstName, verificationLink) {
         try {
-            const verificationLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-            const template = EmailTemplates.getVerificationTemplate(
-                user.firstName,
-                verificationLink
-            );
+            const emailTemplate = EmailTemplates.getVerificationTemplate(firstName, verificationLink);
+            
+            const mailOptions = {
+                from: `"NextGen Academy" <${process.env.SMTP_FROM}>`,
+                to: email,
+                subject: emailTemplate.subject,
+                html: emailTemplate.html
+            };
 
-            await this.transporter.sendMail({
-                from: process.env.SMTP_FROM,
-                to: user.email,
-                ...template
-            });
+            await this.transporter.sendMail(mailOptions);
+            console.log('Verification email sent successfully');
         } catch (error) {
-            console.error('Verification email sending failed:', error);
-            throw error;
+            console.error('Failed to send verification email:', error);
+            throw new Error('Failed to send verification email');
         }
     }
 
@@ -284,6 +284,26 @@ class AuthService {
             return true;
         } catch (error) {
             throw new Error('Error during logout');
+        }
+    }
+
+    // Add this method to your existing AuthService
+    async sendVerificationEmail(email, firstName, verificationLink) {
+        try {
+            const emailTemplate = EmailTemplates.getVerificationTemplate(firstName, verificationLink);
+            
+            const mailOptions = {
+                from: `"NextGen Academy" <${process.env.SMTP_FROM}>`,
+                to: email,
+                subject: emailTemplate.subject,
+                html: emailTemplate.html
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log('Verification email sent successfully');
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+            throw new Error('Failed to send verification email');
         }
     }
 }

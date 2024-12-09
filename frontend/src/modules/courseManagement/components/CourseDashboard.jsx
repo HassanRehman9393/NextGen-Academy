@@ -3,6 +3,8 @@ import { FaBook, FaVideo, FaQuestionCircle, FaPlus, FaGraduationCap } from 'reac
 import { useCourse } from '../context/CourseContext';
 import CreateCourseForm from './CreateCourseForm';
 import CourseList from './CourseList';
+import { Link } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
 
 const CourseDashboard = () => {
     const {
@@ -26,8 +28,14 @@ const CourseDashboard = () => {
                     {/* Top Bar */}
                     <div className="flex items-center justify-between px-6 py-4">
                         <div className="flex items-center space-x-4">
+                            <Link 
+                                to="/instructor"
+                                className="text-white/60 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
+                            >
+                                <FiArrowLeft className="text-2xl" />
+                            </Link>
                             <div className="flex items-center space-x-2">
-                                <FaGraduationCap className="text-yellow-300 text-3xl" />
+                                <FaGraduationCap className="text-yellow-300 text-3xl animate-bounce" />
                                 <span className="text-white text-xl font-bold">NextGen Academy</span>
                             </div>
                             <div className="hidden md:flex items-center space-x-2 text-white/60">

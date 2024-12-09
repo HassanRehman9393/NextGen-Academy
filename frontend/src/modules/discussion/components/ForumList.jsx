@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForumContext } from '../context/ForumContext';
 import { formatTimestamp, truncateText } from '../utils/formatUtils';
 import { FaPlus, FaSpinner, FaComments, FaClock, FaEdit, FaTrash } from 'react-icons/fa';
+import { FiArrowLeft } from 'react-icons/fi';
+import { FaGraduationCap } from 'react-icons/fa';
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
@@ -185,28 +187,82 @@ const ForumList = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500 py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Enhanced Header */}
-                <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 mb-8 border border-white/20">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold text-white mb-2">Discussion Forums</h1>
-                            <p className="text-white/60">
-                                Create and manage discussion forums to engage with your students
-                            </p>
+        <div className="min-h-screen bg-gradient-to-br from-purple-700 via-indigo-600 to-blue-500">
+            {/* Header */}
+            <div className="bg-white/10 backdrop-blur-md border-b border-white/10 sticky top-0 z-10">
+                <div className="max-w-7xl mx-auto">
+                    {/* Top Bar */}
+                    <div className="flex items-center justify-between px-6 py-4">
+                        <div className="flex items-center space-x-4">
+                            <Link 
+                                to="/instructor"
+                                className="text-white/60 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
+                            >
+                                <FiArrowLeft className="text-2xl" />
+                            </Link>
+                            <div className="flex items-center space-x-2">
+                                <FaGraduationCap className="text-yellow-300 text-3xl animate-bounce" />
+                                <span className="text-white text-xl font-bold">NextGen Academy</span>
+                            </div>
+                            <div className="hidden md:flex items-center space-x-2 text-white/60">
+                                <FaComments className="text-yellow-300/60" />
+                                <span>Discussion Forums</span>
+                            </div>
                         </div>
                         <button
                             onClick={() => navigate('/instructor/forums/create')}
-                            className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg font-semibold hover:from-yellow-300 hover:to-orange-400 focus:outline-none focus:ring-2 focus:ring-yellow-300/50 transform hover:scale-105 transition-all duration-200 flex items-center"
+                            className="flex items-center px-6 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl font-semibold hover:from-yellow-300 hover:to-orange-400 transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
                             <FaPlus className="mr-2" />
                             Create Forum
                         </button>
                     </div>
+
+                    {/* Dashboard Title */}
+                    <div className="px-6 py-8 bg-gradient-to-r from-white/5 to-transparent">
+                        <h1 className="text-4xl font-bold text-white flex items-center mb-3">
+                            <FaComments className="mr-4 text-yellow-300" />
+                            Discussion Forums
+                        </h1>
+                        <p className="text-lg text-white/60 max-w-2xl">
+                            Create and manage discussion forums to engage with your students
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6">
+                        <div className="flex items-center mb-2">
+                            <FaComments className="text-yellow-300 mr-2" />
+                            <h4 className="text-white/60">Total Forums</h4>
+                        </div>
+                        <p className="text-3xl font-bold text-white">{forums?.length || 0}</p>
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6">
+                        <div className="flex items-center mb-2">
+                            <FaComments className="text-yellow-300 mr-2" />
+                            <h4 className="text-white/60">Active Discussions</h4>
+                        </div>
+                        <p className="text-3xl font-bold text-white">
+                            {forums?.filter(f => f.isActive).length || 0}
+                        </p>
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6">
+                        <div className="flex items-center mb-2">
+                            <FaComments className="text-yellow-300 mr-2" />
+                            <h4 className="text-white/60">Total Comments</h4>
+                        </div>
+                        <p className="text-3xl font-bold text-white">
+                            {forums?.reduce((acc, forum) => acc + (forum.comments?.length || 0), 0) || 0}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Forums Grid with Loading and Empty States */}
+                {/* Forums Grid */}
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <div className="text-center">

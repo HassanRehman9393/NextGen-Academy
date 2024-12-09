@@ -1,91 +1,58 @@
 const jwt = require('jsonwebtoken');
 
 class TokenUtils {
-    static generateToken(userData) {
+    static generateToken(userData, purpose = 'auth') {
         try {
-            if (!userData || !userData.userId) {
+            // Ensure required user data is present
+            if (!userData || !userData._id) {
+                console.error('Invalid user data:', userData);
                 throw new Error('Invalid user data for token generation');
             }
 
+            // Create a standardized payload
             const payload = {
-                userId: userData.userId,
-                email: userData.email
+                userId: userData._id.toString(),
+                email: userData.email,
+                roles: userData.roles || ['student'],
+                purpose: purpose
             };
 
-            return jwt.sign(
+            const token = jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn: '24h' }
+                { expiresIn: '1d' }
             );
+
+            return token;
         } catch (error) {
             console.error('Token generation error:', error);
             throw new Error('Token generation failed');
         }
     }
 
+    static generateVerificationToken(userId) {
+        return this.generateToken({ _id: userId }, 'verification');
+    }
+
+    static generatePasswordResetToken(userId) {
+        return this.generateToken({ _id: userId }, 'password_reset');
+    }
+
     static verifyToken(token) {
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            return decoded;
+            return jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
+            console.error('Token verification error:', error);
             throw new Error('Invalid or expired token');
         }
     }
 
-    static decodeToken(token) {
-        try {
-            return jwt.decode(token);
-        } catch (error) {
-            throw new Error('Token decoding failed');
+    static validateTokenPurpose(token, expectedPurpose) {
+        const decoded = this.verifyToken(token);
+        if (decoded.purpose !== expectedPurpose) {
+            throw new Error('Invalid token purpose');
         }
-    }
-
-    static generateVerificationToken(userId) {
-        return jwt.sign(
-            { userId, purpose: 'verification' },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-    }
-
-    static generatePasswordResetToken(userId) {
-        return jwt.sign(
-            { 
-                userId, 
-                purpose: 'password_reset',
-                timestamp: Date.now() // Add timestamp to ensure uniqueness
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-    }
-
-    static generateRefreshToken(userId) {
-        return this.generateToken(
-            { userId, type: 'refresh' },
-            '7d'
-        );
-    }
-
-    static validateTokenPurpose(token, purpose) {
-        try {
-            const decoded = this.verifyToken(token);
-            if (decoded.purpose !== purpose) {
-                throw new Error('Invalid token purpose');
-            }
-            return decoded;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    static extractUserIdFromToken(token) {
-        try {
-            const decoded = this.verifyToken(token);
-            return decoded.userId;
-        } catch (error) {
-            throw error;
-        }
+        return decoded;
     }
 }
 

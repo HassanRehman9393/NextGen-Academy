@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 const authService = {
     login: async (credentials) => {
@@ -62,6 +62,20 @@ const authService = {
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Failed to verify email');
+        }
+    },
+
+    logout: async (refreshToken) => {
+        try {
+            const response = await axios.post(`${API_URL}/auth/logout`, { refreshToken }, {
+                headers: {
+                    'Authorization': localStorage.getItem('token')
+                }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Logout error:', error);
+            throw error;
         }
     }
 };

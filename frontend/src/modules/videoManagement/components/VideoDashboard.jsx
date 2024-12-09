@@ -4,6 +4,8 @@ import VideoList from './VideoList';
 import VideoUploadForm from './VideoUploadForm';
 import VideoEditForm from './VideoEditForm';
 import { FaVideo, FaPlus, FaGraduationCap, FaChalkboardTeacher } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
 
 const VideoDashboard = () => {
     const {
@@ -31,6 +33,12 @@ const VideoDashboard = () => {
                     {/* Top Bar */}
                     <div className="flex items-center justify-between px-6 py-4">
                         <div className="flex items-center space-x-4">
+                            <Link 
+                                to="/instructor"
+                                className="text-white/60 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
+                            >
+                                <FiArrowLeft className="text-2xl" />
+                            </Link>
                             <div className="flex items-center space-x-2">
                                 <FaGraduationCap className="text-yellow-300 text-3xl animate-bounce" />
                                 <span className="text-white text-xl font-bold">NextGen Academy</span>

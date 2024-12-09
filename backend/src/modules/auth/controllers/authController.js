@@ -1,7 +1,7 @@
 const User = require('../models/userModel');
 const Token = require('../models/tokenModel');
 const passport = require('passport');
-const AuthService = require('../services/authService');
+const authService = require('../services/authService');
 const SocialAuthService = require('../services/socialAuthService');
 const TokenUtils = require('../utils/tokenUtils');
 const EmailTemplates = require('../utils/emailTemplates');
@@ -15,25 +15,51 @@ class AuthController {
     // Register new user
     async register(req, res) {
         try {
-            const { email, password, firstName, lastName } = req.body;
+            const { email } = req.body;
             
-            // Create user and generate token
-            const result = await AuthService.register({
-                email,
-                password,
-                firstName,
-                lastName
+            // Check if user already exists
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'User already exists'
+                });
+            }
+
+            // Create user with isVerified set to false
+            const user = new User({
+                ...req.body,
+                isVerified: false
             });
+            await user.save();
+
+            // Generate verification token
+            const verificationToken = TokenUtils.generateVerificationToken(user._id);
+            
+            // Save verification token
+            await Token.create({
+                userId: user._id,
+                token: verificationToken,
+                type: 'verification',
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            });
+
+            // Generate verification link with correct path
+            const verificationLink = `${process.env.FRONTEND_URL}/auth/verify-email/${verificationToken}`;
+            
+            // Send verification email
+            await authService.sendVerificationEmail(user.email, user.firstName, verificationLink);
 
             res.status(201).json({
                 success: true,
-                message: 'Registration successful. Please check your email for verification.',
-                token: result
+                message: 'Registration successful. Please check your email to verify your account.',
+                requiresVerification: true
             });
         } catch (error) {
-            res.status(400).json({
+            console.error('Registration error:', error);
+            res.status(500).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Registration failed'
             });
         }
     }
@@ -63,7 +89,31 @@ class AuthController {
     async login(req, res) {
         try {
             const { email, password } = req.body;
-            const result = await AuthService.login(email, password);
+            const user = await User.findOne({ email }).select('+password');
+
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials'
+                });
+            }
+
+            const isMatch = await user.comparePassword(password);
+            if (!isMatch) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials'
+                });
+            }
+
+            // For existing users who registered before verification system
+            // Set them as verified if they weren't before
+            if (!user.isVerified) {
+                user.isVerified = true;
+                await user.save();
+            }
+
+            const result = await authService.login(email, password);
 
             const { accessToken, refreshToken } = this.generateTokens(result.user);
 
@@ -95,9 +145,9 @@ class AuthController {
             });
         } catch (error) {
             console.error('Login error:', error);
-            res.status(401).json({
+            res.status(500).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Login failed'
             });
         }
     }
@@ -219,33 +269,19 @@ class AuthController {
             // First verify the token
             let decoded;
             try {
-                decoded = TokenUtils.verifyToken(token);
-                if (!decoded.userId || decoded.purpose !== 'verification') {
-                    throw new Error('Invalid verification token');
+                decoded = jwt.verify(token, process.env.JWT_SECRET);
+                if (!decoded.userId) {
+                    throw new Error('Invalid token structure');
                 }
             } catch (error) {
                 console.error('Token verification failed:', error);
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid or expired verification link'
+                    message: 'Invalid or expired verification token'
                 });
             }
 
-            // Find the token in the database
-            const tokenDoc = await Token.findOne({
-                token,
-                type: 'verification',
-                userId: decoded.userId
-            });
-
-            if (!tokenDoc) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Verification link has expired or already been used'
-                });
-            }
-
-            // Find and update the user
+            // Find the user
             const user = await User.findById(decoded.userId);
             if (!user) {
                 return res.status(404).json({
@@ -254,30 +290,51 @@ class AuthController {
                 });
             }
 
-            if (user.isVerified) {
-                await Token.deleteOne({ _id: tokenDoc._id });
+            // Find the verification token in database
+            const verificationToken = await Token.findOne({
+                userId: decoded.userId,
+                token: token,
+                type: 'verification'
+            });
+
+            if (!verificationToken) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Email already verified. Please login.'
+                    message: 'Verification token not found or already used'
                 });
             }
 
-            // Update user verification status
+            // Check if token is expired
+            if (verificationToken.expiresAt < new Date()) {
+                await Token.deleteOne({ _id: verificationToken._id });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Verification token has expired'
+                });
+            }
+
+            // Update user and remove token
             user.isVerified = true;
             await user.save();
+            await Token.deleteOne({ _id: verificationToken._id });
 
-            // Delete the verification token
-            await Token.deleteOne({ _id: tokenDoc._id });
+            // Send welcome email after successful verification
+            try {
+                await authService.sendWelcomeEmail(user);
+            } catch (emailError) {
+                console.error('Welcome email error:', emailError);
+                // Don't fail verification if welcome email fails
+            }
 
-            return res.status(200).json({
+            res.json({
                 success: true,
-                message: 'Email verified successfully. You can now login.'
+                message: 'Email verified successfully'
             });
         } catch (error) {
             console.error('Email verification error:', error);
-            return res.status(500).json({
+            res.status(500).json({
                 success: false,
-                message: 'An error occurred during email verification'
+                message: 'Email verification failed'
             });
         }
     }
@@ -362,20 +419,37 @@ class AuthController {
     // GitHub OAuth callback
     async githubCallback(req, res) {
         try {
-            const token = req.user.token;
-            res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+            if (!req.user) {
+                throw new Error('Authentication failed');
+            }
+
+            const { token } = req.user;
+            
+            // Redirect to social callback handler
+            res.redirect(`${process.env.FRONTEND_URL}/auth/social-callback?token=${token}`);
         } catch (error) {
             console.error('GitHub callback error:', error);
             res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
         }
     }
 
-    handleSocialAuthCallback(req, res) {
-        const redirectUrl = req.user?.redirectUrl || `${process.env.FRONTEND_URL}/login`;
-        const token = req.user?.token;
+    async handleSocialAuthCallback(req, res) {
+        try {
+            if (!req.user) {
+                throw new Error('Authentication failed');
+            }
 
-        // Redirect with token as a query parameter
-        res.redirect(`${redirectUrl}?token=${token}`);
+            const { user, token } = req.user;
+            
+            // Ensure token is prefixed with Bearer
+            const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+            
+            // Redirect to social callback handler with token
+            res.redirect(`${process.env.FRONTEND_URL}/auth/social-callback?token=${tokenWithBearer}`);
+        } catch (error) {
+            console.error('Social auth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=Authentication failed`);
+        }
     }
 
     getProfile(req, res) {

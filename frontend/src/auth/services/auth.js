@@ -12,7 +12,7 @@ export const login = async (credentials) => {
         
         return {
             user,
-            redirectPath: user.roles.includes('instructor') ? '/instructor/dashboard' : '/student/dashboard'
+            redirectPath: user.roles.includes('instructor') ? '/instructor/dashboard' : '/dashboard'
         };
     } catch (error) {
         console.error('Login error:', error);
@@ -31,7 +31,6 @@ export const googleLogin = () => {
 export const resetPassword = async (token, newPassword) => {
     try {
         console.log('Sending reset password request');
-        
         const response = await axios.post(
             `${API_URL}/auth/reset-password/${token}`,
             { newPassword },
@@ -41,7 +40,6 @@ export const resetPassword = async (token, newPassword) => {
                 }
             }
         );
-        
         return response.data;
     } catch (error) {
         console.error('Reset password error:', error.response?.data);
@@ -62,33 +60,58 @@ export const requestPasswordReset = async (email) => {
 };
 
 export const handleSocialCallback = async (token) => {
-    if (!token) return null;
+    if (!token) {
+        console.error('No token provided to handleSocialCallback');
+        return null;
+    }
     
     try {
-        // Store the token
-        localStorage.setItem('token', token);
+        console.log('Handling social callback with token:', token);
+        
+        // Store the token with Bearer prefix if not present
+        const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        localStorage.setItem('token', tokenWithBearer);
         
         // Fetch user profile
         const response = await axios.get(`${API_URL}/auth/profile`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: tokenWithBearer }
         });
         
-        const user = response.data.user;
-        localStorage.setItem('user', JSON.stringify(user));
+        console.log('Profile response:', response.data);
         
+        if (!response.data || (!response.data.user && !response.data.data)) {
+            throw new Error('Invalid profile response');
+        }
+
+        const user = response.data.user || response.data.data;
+        
+        // Ensure user has roles
+        if (!user.roles) {
+            user.roles = ['student'];
+        }
+
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(user));
+
         return {
             user,
-            redirectPath: user.roles.includes('instructor') ? '/instructor/dashboard' : '/student/dashboard'
+            token: tokenWithBearer,
+            redirectPath: user.roles?.includes('instructor') ? '/instructor' : '/dashboard'
         };
     } catch (error) {
+        console.error('Social callback error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         throw error;
     }
 };
 
 export const getCurrentUser = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        return JSON.parse(userStr);
+    try {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
     }
-    return null;
 }; 

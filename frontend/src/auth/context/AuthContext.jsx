@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 
 export const AuthContext = createContext();
 
@@ -23,9 +24,6 @@ export const AuthProvider = ({ children }) => {
             
             if (storedUser && storedToken) {
                 setUser(JSON.parse(storedUser));
-            } else {
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
             }
         } catch (error) {
             console.error('Error loading stored user:', error);
@@ -36,10 +34,24 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const login = (userData) => {
+    const login = async (userData) => {
         try {
-            console.log('Login data:', userData);
+            console.log('Login data received:', userData);
 
+            // Handle social login data structure
+            if (userData.user && userData.token) {
+                localStorage.setItem('token', userData.token);
+                localStorage.setItem('user', JSON.stringify(userData.user));
+                setUser(userData.user);
+                
+                const redirectPath = userData.user.roles?.includes('instructor') 
+                    ? '/instructor'
+                    : '/dashboard';
+                navigate(redirectPath, { replace: true });
+                return;
+            }
+
+            // Handle normal login data structure
             if (!userData?.success || !userData?.data) {
                 throw new Error('Invalid response format');
             }
@@ -57,6 +69,7 @@ export const AuthProvider = ({ children }) => {
 
             setUser(user);
 
+            // Navigate based on role
             if (user.roles?.includes('instructor')) {
                 navigate('/instructor');
             } else {
@@ -64,15 +77,27 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Login error:', error);
-            throw new Error('Failed to login. Please try again.');
+            throw error;
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        setUser(null);
-        navigate('/login');
+    const logout = async () => {
+        try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (refreshToken) {
+                await authService.logout(refreshToken);
+            }
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            setUser(null);
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            localStorage.clear();
+            setUser(null);
+            navigate('/login');
+        }
     };
 
     const value = {

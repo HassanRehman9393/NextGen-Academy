@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaGraduationCap, FaVideo, FaBook, FaChalkboardTeacher, 
          FaComments, FaQuestionCircle, FaTachometerAlt, FaUserCircle, 
-         FaBars, FaTimes, FaRobot } from 'react-icons/fa';  // Added FaRobot
+         FaBars, FaTimes, FaRobot, FaSignOutAlt } from 'react-icons/fa';  // Added FaRobot
 import { useAuth } from '../../../auth/context/AuthContext';
 
 const SidebarLink = ({ to, icon: Icon, text, isActive, onClick }) => (
@@ -22,8 +22,20 @@ const SidebarLink = ({ to, icon: Icon, text, isActive, onClick }) => (
 
 const StudentLayout = ({ children }) => {
     const location = useLocation();
-    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            navigate('/');
+        }
+    };
 
     const closeSidebar = () => {
         setIsSidebarOpen(false);
@@ -130,16 +142,71 @@ const StudentLayout = ({ children }) => {
                             
                             {/* User Profile Section */}
                             <div className="flex items-center space-x-2 md:space-x-4">
-                                <div className="text-right hidden sm:block">
-                                    <p className="text-white font-medium truncate">
-                                        {user?.firstName} {user?.lastName}
-                                    </p>
-                                    <p className="text-white/60 text-sm truncate">{user?.email}</p>
-                                </div>
                                 <div className="relative">
-                                    <button className="p-2 rounded-full hover:bg-white/5 transition-colors">
-                                        <FaUserCircle className="text-2xl md:text-3xl text-yellow-400" />
+                                    <button
+                                        onClick={() => setShowUserMenu(!showUserMenu)}
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                                    >
+                                        <div className="relative">
+                                            <FaUserCircle className="text-2xl text-yellow-300" />
+                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-indigo-900"></div>
+                                        </div>
+                                        <span className="text-white/80 hidden md:inline">{user?.firstName}</span>
                                     </button>
+
+                                    {showUserMenu && (
+                                        <>
+                                            {/* Backdrop */}
+                                            <div 
+                                                className="fixed inset-0 z-[100]" 
+                                                onClick={() => setShowUserMenu(false)}
+                                            />
+                                            
+                                            {/* Dropdown Menu */}
+                                            <div 
+                                                className="absolute right-0 mt-2 w-72 bg-indigo-900 rounded-xl border border-indigo-700/50 
+                                                         shadow-2xl overflow-hidden z-[101] transform-gpu transition-all duration-200 
+                                                         origin-top-right animate-fadeIn"
+                                            >
+                                                {/* User Info Section */}
+                                                <div className="p-4 bg-indigo-800 border-b border-indigo-700">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded-full bg-indigo-700">
+                                                            <FaUserCircle className="text-3xl text-yellow-300" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white font-medium">{user?.firstName} {user?.lastName}</p>
+                                                            <p className="text-white/70 text-sm truncate">{user?.email}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Menu Items */}
+                                                <div className="p-2 bg-indigo-900">
+                                                    {/* Profile Section */}
+                                                    <button className="w-full px-4 py-2 text-left text-white hover:bg-indigo-800 rounded-lg 
+                                                                     transition-colors flex items-center gap-3 group">
+                                                        <div className="p-2 rounded-lg bg-indigo-800 group-hover:bg-indigo-700 transition-colors">
+                                                            <FaGraduationCap className="text-yellow-300" />
+                                                        </div>
+                                                        <span>Student Profile</span>
+                                                    </button>
+
+                                                    {/* Logout Button */}
+                                                    <button
+                                                        onClick={handleLogout}
+                                                        className="w-full mt-1 px-4 py-2 text-left text-red-400 hover:bg-red-950 rounded-lg 
+                                                                         transition-colors flex items-center gap-3 group"
+                                                    >
+                                                        <div className="p-2 rounded-lg bg-red-950/50 group-hover:bg-red-900 transition-colors">
+                                                            <FaSignOutAlt className="text-red-400" />
+                                                        </div>
+                                                        <span>Logout</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

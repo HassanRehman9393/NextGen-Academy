@@ -3,7 +3,7 @@ class EmailTemplates {
         return `
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <img src="https://your-logo-url.com/logo.png" alt="NextGenAcademy Logo" style="max-width: 200px;">
+                    <img src="/images/graduation-cap-solid.svg" alt="Graduation Cap" style="max-width: 200px;">
                 </div>
                 ${content}
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666;">
@@ -60,12 +60,6 @@ class EmailTemplates {
                           display: inline-block;">
                     Verify Email Address
                 </a>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                <p style="color: #34495e; font-size: 14px; margin: 0;">
-                    ⚠️ This verification link will expire in 24 hours for security reasons.<br>
-                    Please note that you won't be able to access your account until your email is verified.
-                </p>
             </div>
         `;
         return {

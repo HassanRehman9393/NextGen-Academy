@@ -15,7 +15,7 @@ class SocialAuthService {
         passport.use(new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: "http://localhost:8080/api/auth/google/callback",
+            callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
             scope: ['profile', 'email']
         }, async function(accessToken, refreshToken, profile, done) {
             try {
@@ -31,25 +31,20 @@ class SocialAuthService {
                         lastName: profile.name.familyName,
                         googleId: profile.id,
                         isVerified: true,
+                        roles: ['student'],  // Set default role
                         profilePicture: profile.photos?.[0]?.value,
-                        password: require('crypto').randomBytes(32).toString('hex') // Generate random password
+                        password: require('crypto').randomBytes(32).toString('hex')
                     });
-                } else if (!user.googleId) {
-                    user.googleId = profile.id;
-                    await user.save();
                 }
 
-                // Generate JWT token
+                // Generate JWT token with correct user data structure
                 const token = TokenUtils.generateToken({
-                    userId: user._id,
-                    roles: user.roles
+                    _id: user._id,
+                    email: user.email,
+                    roles: user.roles || ['student']
                 });
 
-                // Add token to user object
-                const userObject = user.toObject();
-                userObject.token = token;
-                
-                return done(null, userObject);
+                return done(null, { user, token });
             } catch (error) {
                 console.error('Google Auth Error:', error);
                 return done(error, null);
@@ -173,30 +168,27 @@ class SocialAuthService {
                     lastName = nameParts.slice(1).join(' ');
                 }
 
-                // Create new user with a generated password
+                // Create new user with student role
                 user = await User.create({
                     email,
                     firstName,
-                    lastName: lastName || 'Unknown', // Provide default lastName
+                    lastName: lastName || 'Unknown',
                     githubId: profile.id,
-                    password: require('crypto').randomBytes(32).toString('hex'), // Generate random password
+                    password: require('crypto').randomBytes(32).toString('hex'),
                     isVerified: true,
-                    profilePicture: profile.photos?.[0]?.value
+                    profilePicture: profile.photos?.[0]?.value,
+                    roles: ['student']  // Set default role as student
                 });
             }
 
-            // Generate JWT token
-            const token = TokenUtils.generateToken(user);
-            if (!token) {
-                throw new Error('Failed to generate token');
-            }
+            // Generate token with user data including roles
+            const token = TokenUtils.generateToken({
+                _id: user._id,
+                email: user.email,
+                roles: user.roles || ['student']
+            });
 
-            // Add token and redirect URL to user object
-            const userObject = user.toObject();
-            userObject.token = token;
-            userObject.redirectUrl = `${process.env.FRONTEND_URL}/dashboard`;
-            
-            return done(null, userObject);
+            return done(null, { user, token });
         } catch (error) {
             console.error('GitHub Auth Error:', error);
             return done(error, null);
