@@ -1,117 +1,51 @@
 # NextGen Academy 🎓
 
-A comprehensive MERN Stack Learning Management System (LMS) designed to provide an interactive and engaging educational experience.
+A modern Learning Management System (LMS) built with the MERN stack, featuring AI integration and interactive learning experiences.
 
-## 🌟 Features
+## ✨ Key Features
 
-### For Instructors
-- **Course Management**
-  - Create and manage courses
-  - Organize course content
-  - Set course difficulty levels
-  - Track student enrollments
-  - Monitor course completion rates
-  - Manage course sequence
-  - Add/remove course content
+### 👨‍🏫 Instructor Features
+- Course Management (Create, Edit, Delete)
+- Video Management (Upload, YouTube Integration)
+- Quiz Creation & Management
+- Discussion Forums
+- Course Analytics & Reports
+- Student Feedback Management
+- Progress Tracking
 
-- **Video Management**
-  - Upload videos directly
-  - Integrate YouTube videos
-  - Organize video content
-  - Track video views
-  - Monitor video completion rates
-  - Video analytics
+### 👨‍🎓 Student Features
+- Course Enrollment & Progress Tracking
+- Video Learning with Progress Tracking
+- Quiz Participation
+- Discussion Forum Interaction
+- Course Ratings & Reviews
+- AI-Powered Learning Assistant
+- Progress Analytics
 
-- **Quiz Management**
-  - Create interactive quizzes
-  - Multiple question types
-  - Set quiz parameters
-  - Track student performance
-  - Quiz analytics
-  - Auto-grading system
+## 🛠️ Tech Stack
 
-- **Discussion Management**
-  - Create discussion forums
-  - Moderate discussions
-  - Reply to student comments
-  - Track forum engagement
-  - Forum analytics
+### Frontend
+- React.js 18
+- TailwindCSS
+- Context API
+- React Router v6
+- Framer Motion
+- React Particles
 
-- **Course Analytics**
-  - Enrollment statistics
-  - Completion rates
-  - Student progress tracking
-  - Performance metrics
-  - Downloadable reports (PDF/Excel)
-  - Visual analytics dashboard
-
-- **Feedback Management**
-  - View course ratings
-  - Respond to student feedback
-  - Track rating metrics
-  - Rating analytics
-  - Manage student reviews
-
-### For Students
-- **Course Access**
-  - Browse available courses
-  - Search and filter courses
-  - Course recommendations
-  - Track course progress
-  - Resume from last position
-  - Course completion certificates
-
-- **Learning Experience**
-  - Watch educational videos
-  - Track video progress
-  - Interactive video player
-  - Course progress tracking
-  - Visual progress indicators
-  - Seamless content navigation
-
-- **Assessment System**
-  - Take course quizzes
-  - View quiz results
-  - Track quiz performance
-  - Progress tracking
-  - Performance analytics
-  - Instant feedback
-
-- **Interactive Features**
-  - Participate in discussions
-  - Rate and review courses
-  - Comment on forums
-  - Interact with instructors
-  - Community engagement
-  - Real-time updates
-
-- **NextGen AI Chatbot**
-  - AI-powered assistance
-  - Course-related queries
-  - Learning recommendations
-  - 24/7 support
-  - Context-aware responses
-  - Chat history tracking
-
-- **Progress Tracking**
-  - Course progress bars
-  - Video completion tracking
-  - Quiz performance metrics
-  - Overall learning progress
-  - Achievement tracking
-  - Learning analytics
-
-## 🛠️ Technical Features
+### Backend
+- Node.js & Express.js
+- MongoDB & Mongoose
 - JWT Authentication
-- Role-based access control
-- Email verification
-- Password reset functionality
-- File upload to Cloudinary
-- Responsive design
-- Real-time updates
-- Advanced search and filtering
-- Data visualization
-- PDF/Excel report generation
+- Passport.js
+- Express Rate Limit
+
+## 🔌 Integrations
+- Cloudinary (Media Storage)
+- YouTube Data API
+- Google OAuth 2.0
+- GitHub OAuth
+- Google Gemini AI
+- Gmail SMTP
 
 ## 🚀 Getting Started
 
@@ -122,68 +56,46 @@ A comprehensive MERN Stack Learning Management System (LMS) designed to provide 
 
 ### Installation
 
-1. Clone the repository
+1. Clone & Install
 ```bash
 git clone https://github.com/yourusername/NextGen-Academy.git
 cd NextGen-Academy
+
+# Install dependencies
+cd backend && npm install
+cd frontend && npm install
 ```
 
-2. Install dependencies
-```bash
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd frontend
-npm install
-```
-
-3. Set up environment variables
+2. Environment Setup
 
 Backend `.env`:
 ```env
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
+MONGODB_URI=mongodb://localhost:27017/NextGenAcademy
+JWT_SECRET=your_secret
 PORT=8080
-
-# Email Configuration
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_email_password
-SMTP_FROM=your_email@gmail.com
-FRONTEND_URL=http://localhost:3000
-
-# OAuth Credentials
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-
-# API Keys
-YOUTUBE_API_KEY=your_youtube_api_key
-GOOGLE_AI_API_KEY=your_gemini_api_key
+SMTP_PASS=your_pass
+GOOGLE_CLIENT_ID=your_id
+GITHUB_CLIENT_ID=your_id
+YOUTUBE_API_KEY=your_key
+GOOGLE_AI_API_KEY=your_key
 ```
 
 Frontend `.env`:
 ```env
 REACT_APP_API_URL=http://localhost:8080/api
-REACT_APP_CLOUDINARY_CLOUD_NAME=your_cloud_name
-REACT_APP_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
-REACT_APP_CLOUDINARY_API_KEY=your_cloudinary_key
+REACT_APP_CLOUDINARY_CLOUD_NAME=your_name
+REACT_APP_CLOUDINARY_API_KEY=your_key
 ```
 
-4. Start the application
+3. Start Application
 ```bash
-# Start backend server
-cd backend
-npm start
+# Backend
+cd backend && npm start
 
-# Start frontend application
-cd frontend
-npm start
+# Frontend
+cd frontend && npm start
 ```
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE)
