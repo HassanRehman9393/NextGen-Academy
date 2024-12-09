@@ -33,12 +33,16 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'https://nextgen-academy.vercel.app', // Add your frontend Vercel URL
+        'https://next-gen-academy.vercel.app', // Add your frontend Vercel URL
         process.env.FRONTEND_URL
     ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
 }));
+
+// Add this before your routes
+app.options('*', cors());  // Enable pre-flight for all routes
 
 // Middleware
 app.use(logger('dev'));
@@ -81,6 +85,13 @@ app.use('/api/ratings', ratingRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/instructor/ratings', ratingManagementRoutes);
 
+// Add this before your routes
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    next();
+});
+
 // Handle 404s
 app.use((req, res, next) => {
     res.status(404).json({
@@ -90,10 +101,10 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Error:', err);
     res.status(500).json({
         success: false,
-        message: 'Internal Server Error'
+        message: err.message || 'Internal Server Error'
     });
 });
 

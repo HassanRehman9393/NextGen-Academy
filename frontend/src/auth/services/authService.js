@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_URL = process.env.REACT_APP_API_URL;
+
+// Add default headers
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+axios.defaults.withCredentials = true;
 
 const authService = {
     login: async (credentials) => {
@@ -26,15 +30,15 @@ const authService = {
     register: async (userData) => {
         try {
             const response = await axios.post(`${API_URL}/auth/register`, userData);
-            
-            if (!response.data || !response.data.success) {
-                throw new Error(response.data?.message || 'Registration failed');
-            }
-
             return response.data;
         } catch (error) {
-            console.error('Registration error:', error);
-            throw new Error(error.response?.data?.message || 'Failed to register');
+            if (error.response) {
+                throw new Error(error.response.data.message);
+            } else if (error.request) {
+                throw new Error('Cannot connect to server. Please check if the server is running.');
+            } else {
+                throw new Error('An error occurred during registration.');
+            }
         }
     },
 
