@@ -1,10 +1,11 @@
 {
-  "name": "backend",
-  "version": "0.0.0",
+  "name": "nextgen-academy-backend",
+  "version": "1.0.0",
+  "main": "src/app.js",
   "private": true,
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

@@ -31,9 +31,13 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+        'http://localhost:3000',
+        'https://nextgen-academy.vercel.app', // Add your frontend Vercel URL
+        process.env.FRONTEND_URL
+    ],
     credentials: true,
-    exposedHeaders: ['new-token']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));
 
 // Middleware
@@ -82,6 +86,14 @@ app.use((req, res, next) => {
     res.status(404).json({
         success: false,
         message: 'Resource not found'
+    });
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: 'Internal Server Error'
     });
 });
 
