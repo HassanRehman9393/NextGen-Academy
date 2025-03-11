@@ -1,5 +1,5 @@
 # NextGen Academy 🎓
-Introducing conflict
+Introducing conflict in README file
 A modern Learning Management System (LMS) built with the MERN stack, featuring AI integration and interactive learning experiences.
 
 ## ✨ Key Features
