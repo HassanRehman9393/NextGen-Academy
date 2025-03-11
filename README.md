@@ -1,4 +1,6 @@
 # NextGen Academy 🎓
+HAFSA WAQAR
+LAB 7
 
 A modern Learning Management System (LMS) built with the MERN stack, featuring AI integration and interactive learning experiences.
 
