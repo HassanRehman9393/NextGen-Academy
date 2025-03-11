@@ -1,5 +1,9 @@
 # NextGen Academy 🎓
 Introducing conflict in README file
+HAFSA WAQAR
+LAB 7
+this is a change to create conflict
+
 A modern Learning Management System (LMS) built with the MERN stack, featuring AI integration and interactive learning experiences.
 
 ## ✨ Key Features
