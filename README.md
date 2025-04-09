@@ -1,8 +1,4 @@
 # NextGen Academy 🎓
-Introducing conflict in README file
-HAFSA WAQAR
-LAB 7
-this is a change to create conflict
 
 A modern Learning Management System (LMS) built with the MERN stack, featuring AI integration and interactive learning experiences.
 
@@ -103,7 +99,3 @@ cd frontend && npm start
 
 ## 📄 License
 MIT License - see [LICENSE](LICENSE)
-
-### This is a main change
-## Hassan Rehman 22i-2592 Lab 7
-### The change in branch
