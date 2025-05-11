@@ -27,23 +27,53 @@ jobs:
         
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+      timeout-minutes: 10
+      with:
+        install: true
+        download: true
     
     - name: Debug Docker Hub credentials
-      if: failure()
       run: |
         Write-Host "Debugging Docker Hub credentials..."
         Write-Host "Username length: $($env:DOCKER_USERNAME.Length)"
         Write-Host "First character of username: $($env:DOCKER_USERNAME[0])"
         Write-Host "Last character of username: $($env:DOCKER_USERNAME[-1])"
         Write-Host "Token/Password length: $($env:DOCKER_PASSWORD.Length)"
-        # Don't log the actual credentials
+        
+        # Test Docker configuration
+        docker info
+        
+        # Clear any existing Docker credentials
+        docker logout
+        
+        # Verify Docker daemon is responsive
+        if (-not (docker ps 2>&1)) {
+            Write-Host "::error::Docker daemon is not responding"
+            exit 1
+        }
       shell: powershell
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        
+
     - name: Login to Docker Hub with enhanced error handling
       run: |
+        # Set Docker timeout settings
+        $env:DOCKER_CLIENT_TIMEOUT = "180"
+        $env:COMPOSE_HTTP_TIMEOUT = "180"
+        $env:DOCKER_REGISTRY_TIMEOUT = "180"
+
+        # Configure Docker daemon settings if needed
+        if (-not (Test-Path "$env:USERPROFILE/.docker/daemon.json")) {
+            $config = @{
+                "registry-mirrors" = @("https://registry-1.docker.io")
+                "max-concurrent-downloads" = 1
+                "max-concurrent-uploads" = 1
+            }
+            New-Item -Path "$env:USERPROFILE/.docker" -ItemType Directory -Force
+            $config | ConvertTo-Json | Set-Content "$env:USERPROFILE/.docker/daemon.json"
+        }
+
         $maxRetries = 3
         $retryCount = 0
         $success = $false
@@ -66,17 +96,38 @@ jobs:
         while (-not $success -and $retryCount -lt $maxRetries) {
           try {
             Write-Host "Attempt $($retryCount + 1) to log in to Docker Hub"
-            echo $env:DOCKER_PASSWORD | docker login -u $env:DOCKER_USERNAME --password-stdin
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully logged in to Docker Hub"
-              $success = $true
+            
+            # Test network connectivity first
+            try {
+                $testConnection = Test-NetConnection -ComputerName "registry-1.docker.io" -Port 443
+                if (-not $testConnection.TcpTestSucceeded) {
+                    Write-Host "Cannot connect to Docker Hub. Network connectivity issue."
+                    throw "Network connectivity test failed"
+                }
+            } catch {
+                Write-Host "Network test error: $_"
+                $retryCount++
+                if ($retryCount -lt $maxRetries) {
+                    Write-Host "Waiting 30 seconds before retrying due to network issue..."
+                    Start-Sleep -Seconds 30
+                    continue
+                }
+                throw
+            }
+            
+            # Attempt Docker login with increased timeout
+            $loginProcess = Start-Process -FilePath "docker" -ArgumentList "login", "-u", $env:DOCKER_USERNAME, "--password-stdin" -RedirectStandardInput $env:DOCKER_PASSWORD -NoNewWindow -Wait -PassThru
+            
+            if ($loginProcess.ExitCode -eq 0) {
+                Write-Host "Successfully logged in to Docker Hub"
+                $success = $true
             } else {
-              Write-Host "Failed to log in to Docker Hub, exit code: $LASTEXITCODE"
-              $retryCount++
-              if ($retryCount -lt $maxRetries) {
-                Write-Host "Waiting 10 seconds before retrying..."
-                Start-Sleep -Seconds 10
-              }
+                Write-Host "Failed to log in to Docker Hub, exit code: $($loginProcess.ExitCode)"
+                $retryCount++
+                if ($retryCount -lt $maxRetries) {
+                    Write-Host "Waiting 30 seconds before retrying..."
+                    Start-Sleep -Seconds 30
+                }
             }
           } catch {
             Write-Host "Error during Docker Hub login: $_"
