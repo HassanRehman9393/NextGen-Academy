@@ -7,7 +7,6 @@ metadata:
     app: nextgen-backend
     tier: backend
 spec:
-  # Modified to use 1 replica for Minikube resource constraints
   replicas: 1
   selector:
     matchLabels:
@@ -24,22 +23,32 @@ spec:
         - containerPort: 8080
         env:
         - name: NODE_ENV
-          value: "production"
-        - name: PORT
+          value: "production"        - name: PORT
           value: "8080"
-        # For development with Minikube, connect to host MongoDB
-        # In production, you would use a proper MongoDB service
         - name: MONGODB_URI
-          value: "mongodb://host.minikube.internal:27017/nextgen-academy"
-        # Add any other environment variables your application needs here
+          value: "mongodb://admin:password@mongodb.nextgen-academy.svc.cluster.local:27017/nextgen-academy?authSource=admin"
+        - name: JWT_SECRET
+          value: "nextgen-academy-secret-key-for-development"
+        # Facebook OAuth
+        - name: FACEBOOK_APP_ID
+          value: "dummy-facebook-app-id"
+        - name: FACEBOOK_APP_SECRET
+          value: "dummy-facebook-app-secret"
+        # Google OAuth
+        - name: GOOGLE_CLIENT_ID
+          value: "dummy-google-client-id"
+        - name: GOOGLE_CLIENT_SECRET
+          value: "dummy-google-client-secret"
+        # Auth mode - Set to disable social auth in development
+        - name: AUTH_MODE
+          value: "basic"
         resources:
           requests:
             memory: "128Mi"
             cpu: "100m"
           limits:
             memory: "256Mi"
-            cpu: "300m"
-        readinessProbe:
+            cpu: "300m"        readinessProbe:
           httpGet:
             path: /api/health
             port: 8080
