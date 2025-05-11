@@ -17,15 +17,23 @@ jobs:
     - name: Check Docker status
       run: |
         try {
-          $dockerStatus = docker info 2>&1
+          $dockerStatus = docker version 2>&1
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Docker is not running! Please start Docker Desktop before running this workflow."
             exit 1
           } else {
             Write-Host "Docker is running correctly."
+            # Additional verification to ensure Docker is fully operational
+            docker ps
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Docker daemon is responsive and operational."
+            } else {
+              Write-Host "Docker daemon is running but may not be fully operational."
+            }
           }
         } catch {
-          Write-Host "Error checking Docker status. Make sure Docker Desktop is installed and running."
+          Write-Host "Error checking Docker status: $_"
+          Write-Host "Make sure Docker Desktop is installed and running."
           exit 1
         }
       shell: powershell
