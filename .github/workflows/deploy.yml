@@ -30,7 +30,6 @@ jobs:
       timeout-minutes: 10
       with:
         install: true
-        download: true
     
     - name: Debug Docker Hub credentials
       run: |
@@ -97,37 +96,29 @@ jobs:
           try {
             Write-Host "Attempt $($retryCount + 1) to log in to Docker Hub"
             
-            # Test network connectivity first
-            try {
-                $testConnection = Test-NetConnection -ComputerName "registry-1.docker.io" -Port 443
-                if (-not $testConnection.TcpTestSucceeded) {
-                    Write-Host "Cannot connect to Docker Hub. Network connectivity issue."
-                    throw "Network connectivity test failed"
-                }
-            } catch {
-                Write-Host "Network test error: $_"
-                $retryCount++
-                if ($retryCount -lt $maxRetries) {
-                    Write-Host "Waiting 30 seconds before retrying due to network issue..."
-                    Start-Sleep -Seconds 30
-                    continue
-                }
-                throw
-            }
+            # Create a secure string for the password
+            $securePassword = ConvertTo-SecureString $env:DOCKER_PASSWORD -AsPlainText -Force
             
-            # Attempt Docker login with increased timeout
-            $loginProcess = Start-Process -FilePath "docker" -ArgumentList "login", "-u", $env:DOCKER_USERNAME, "--password-stdin" -RedirectStandardInput $env:DOCKER_PASSWORD -NoNewWindow -Wait -PassThru
+            # Write password to a temporary file
+            $tempFile = [System.IO.Path]::GetTempFileName()
+            [System.IO.File]::WriteAllText($tempFile, $env:DOCKER_PASSWORD)
             
-            if ($loginProcess.ExitCode -eq 0) {
-                Write-Host "Successfully logged in to Docker Hub"
-                $success = $true
+            # Use the temporary file for docker login
+            Get-Content $tempFile | docker login -u $env:DOCKER_USERNAME --password-stdin
+            
+            # Clean up the temporary file
+            Remove-Item $tempFile -Force
+            
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Successfully logged in to Docker Hub"
+              $success = $true
             } else {
-                Write-Host "Failed to log in to Docker Hub, exit code: $($loginProcess.ExitCode)"
-                $retryCount++
-                if ($retryCount -lt $maxRetries) {
-                    Write-Host "Waiting 30 seconds before retrying..."
-                    Start-Sleep -Seconds 30
-                }
+              Write-Host "Failed to log in to Docker Hub, exit code: $LASTEXITCODE"
+              $retryCount++
+              if ($retryCount -lt $maxRetries) {
+                Write-Host "Waiting 30 seconds before retrying..."
+                Start-Sleep -Seconds 30
+              }
             }
           } catch {
             Write-Host "Error during Docker Hub login: $_"
