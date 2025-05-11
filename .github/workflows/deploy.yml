@@ -28,22 +28,15 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
-    - name: Verify Docker Hub Credentials
+    - name: Debug Docker Hub credentials
+      if: failure()
       run: |
-        Write-Host "Checking Docker Hub credentials..."
-        
-        if (-not $env:DOCKER_USERNAME) {
-            Write-Host "::error::Docker Hub username is not set. Please check your GitHub repository secrets."
-            exit 1
-        }
-        
-        if (-not $env:DOCKER_PASSWORD) {
-            Write-Host "::error::Docker Hub password is not set. Please check your GitHub repository secrets."
-            exit 1
-        }
-        
-        Write-Host "Docker Hub username: $env:DOCKER_USERNAME (length: $($env:DOCKER_USERNAME.Length))"
-        Write-Host "Docker Hub password is set (length: $($env:DOCKER_PASSWORD.Length))"
+        Write-Host "Debugging Docker Hub credentials..."
+        Write-Host "Username length: $($env:DOCKER_USERNAME.Length)"
+        Write-Host "First character of username: $($env:DOCKER_USERNAME[0])"
+        Write-Host "Last character of username: $($env:DOCKER_USERNAME[-1])"
+        Write-Host "Token/Password length: $($env:DOCKER_PASSWORD.Length)"
+        # Don't log the actual credentials
       shell: powershell
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
