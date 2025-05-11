@@ -99,3 +99,51 @@ cd frontend && npm start
 
 ## 📄 License
 MIT License - see [LICENSE](LICENSE)
+
+## 🚢 Containerization and Kubernetes Deployment
+
+### Docker Setup
+The application is containerized using Docker:
+
+```bash
+# Build the backend image
+cd backend
+docker build -t nextgen-academy-backend .
+
+# Build the frontend image
+cd ../frontend
+docker build -t nextgen-academy-frontend .
+
+# Run the containers
+docker run -d --name nextgen-backend -p 8081:8080 -e MONGODB_URI=mongodb://host.docker.internal:27017/nextgen-academy nextgen-academy-backend
+docker run -d --name nextgen-frontend -p 3000:3000 -e REACT_APP_API_URL=http://localhost:8081/api nextgen-academy-frontend
+```
+
+### Kubernetes Deployment
+The application is configured for Kubernetes deployment using Minikube:
+
+1. Start Minikube:
+```bash
+minikube start
+```
+
+2. Deploy the application:
+```bash
+# Create namespace
+kubectl apply -f kubernetes/namespace.yaml
+
+# Deploy backend
+kubectl apply -f kubernetes/backend-deployment.yaml
+kubectl apply -f kubernetes/backend-service.yaml
+
+# Deploy frontend
+kubectl apply -f kubernetes/frontend-deployment.yaml
+kubectl apply -f kubernetes/frontend-service.yaml
+```
+
+3. Access the application:
+```bash
+minikube service nextgen-frontend-service -n nextgen-academy
+```
+
+See the `kubernetes/README.md` file for more detailed instructions and configuration options.

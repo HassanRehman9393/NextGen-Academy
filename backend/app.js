@@ -29,13 +29,9 @@ connectDB();
 
 const app = express();
 
-
-// CORS configuration
-
 // CORS configuration - using a more permissive configuration for development
 app.use(cors({
     origin: true, // Allow all origins for development, change to specific origins in production
-
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
@@ -43,6 +39,11 @@ app.use(cors({
 
 // Add this before your routes
 app.options('*', cors());  // Enable pre-flight for all routes
+
+// Health check endpoint for Kubernetes
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Service is running' });
+});
 
 // Middleware
 app.use(logger('dev'));

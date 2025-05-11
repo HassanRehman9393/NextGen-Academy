@@ -1,310 +1,220 @@
-# Kubernetes Project Implementation Guide
+# Kubernetes Cluster Setup with Minikube/GitHub Actions/Jenkins
 
-## Introduction
+## Project Overview
+This guide will walk you through setting up a local Kubernetes cluster using Minikube, deploying a web application, and implementing a CI/CD pipeline with GitHub Actions. This project will help you understand core Kubernetes concepts including pods, services, and deployments.
 
-This guide will walk you through implementing a Kubernetes cluster setup project using Minikube, Docker, and GitHub Actions. Follow each step carefully and document your progress for your project report.
+## Project Requirements
+- Groups of exactly 2 students
+- Submit the registration form by May 7th, 2025
+- Complete project report detailing all steps with instructions
+- Only one student needs to submit the final report
 
-## Project Timeline
+## Step 1: Installation of Minikube and Kubectl
+### Setting Up Your Local Kubernetes Environment
 
-- **Form Submission Deadline**: May 7, 2025 (Wednesday)
-- **Project Report Submission**: May 12, 2025 (Monday)
-- **Viva Date**: To be announced
+**Installing Minikube**
+1. Visit the [Minikube documentation](https://minikube.sigs.k8s.io/docs/start/) for installation instructions specific to your OS
+2. Follow the provided steps to install Minikube on your system
+3. Verify installation with `minikube version`
 
-## Step 1: Environment Setup
+**Installing kubectl**
+1. Visit the [Kubernetes documentation](https://kubernetes.io/docs/tasks/tools/) for kubectl installation
+2. Install kubectl using the instructions for your OS
+3. Verify installation with `kubectl version --client`
 
-### Choose Your Operating System
-- Select an operating system (Windows, macOS, or Linux)
-- Document your reasoning for this choice (required for report)
-- Consider factors like compatibility, performance, and ease of use
+**Important Note**: Minikube requires a container runtime like Docker. Ensure Docker is installed and running on your system before proceeding.
 
-### Install Docker
-- Go to the Docker website and download Docker Desktop for your OS
-- Follow the installation instructions
-- After installation, open terminal/command prompt and run `docker --version` to verify
-- Test with `docker run hello-world` to ensure it works properly
+## Step 2: Develop a Web Application
+### Creating or Selecting Your Application
 
-### Install Minikube
-- Visit the Minikube website and download the appropriate version
-- Follow the installation instructions for your OS
-- After installation, run `minikube version` to verify
-- Note: Minikube requires virtualization support (VT-x/AMD-v)
+1. Choose an existing MERN application from a previous semester or create a new one
+2. Your application should have frontend, backend, and database components
+3. Complex applications are preferred over simple ones (avoid basic to-do lists or single page apps)
+4. Organize your application code under an `/app` folder for better management
 
-### Install kubectl
-- Visit the Kubernetes website and download kubectl
-- Follow the installation instructions for your OS
-- After installation, run `kubectl version --client` to verify
-- Make sure it's in your PATH for easy access
+**Best Practices**:
+- Test your application locally before containerization
+- Ensure all dependencies are properly documented
+- Create a clear project structure for your application
 
-### Document Environment Details
-- Record your OS version and reason for selection
-- Note Docker, Minikube, and kubectl versions
-- Take screenshots of successful installations
-- This will be included in your project report
+## Step 3: Containerize Your Application
+### Creating a Docker Environment
 
-## Step 2: Web Application Selection
+1. Create a Dockerfile in the root directory of your project
+2. Define the base image (e.g., Node.js for a MERN application)
+3. Set up the working directory and copy necessary files
+4. Install dependencies and define how to run your application
+5. Build and test your container locally before proceeding
 
-### Choose Your Application
-- Option 1: Use an existing MERN application from a previous semester
-- Option 2: Create a new web application with frontend, backend, and database
-- Requirement: Application must be more complex than a single page or to-do list
+**Testing Your Container**:
+- Build your image with a tag that includes your Docker Hub username
+- Run the container locally and verify it works as expected
+- Troubleshoot any issues before proceeding to the next step
 
-### Organize Your Project Structure
-- Create a main project folder
-- Set up directories for your application code
-- Ensure proper separation of frontend and backend components
-- Test your application locally before proceeding
+## Step 4: Push Code to GitHub
+### Setting Up Version Control
 
-## Step 3: Containerization
+1. Initialize a Git repository in your project directory (if not done already)
+2. Add your files and make an initial commit
+3. Create a repository on GitHub
+4. Push your code to the GitHub repository
+5. Verify all necessary files are available in the repository
 
-### Create Separate Dockerfiles for Frontend and Backend
-- Create two separate Dockerfiles:
-  - `frontend/Dockerfile` for your frontend application
-  - `backend/Dockerfile` for your backend application
-- For each Dockerfile:
-  - Define appropriate base image (e.g., node:18 for Node.js, python:3.9 for Python)
-  - Set up working directory
-  - Copy application files
-  - Install dependencies
-  - Specify how to run each component
-- This separation follows microservices best practices
-- Document your Dockerfile creation process with screenshots for both
+**Required Repository Content**:
+- Application code
+- Dockerfile
+- README.md with project description and running instructions
+- Any additional necessary files for your application
 
-### Build and Test Containers
-- Build frontend image: `docker build -t my-frontend:latest ./frontend`
-- Build backend image: `docker build -t my-backend:latest ./backend`
-- Run frontend container: `docker run -p FRONTEND_PORT:FRONTEND_PORT my-frontend:latest`
-- Run backend container: `docker run -p BACKEND_PORT:BACKEND_PORT my-backend:latest`
-- Verify both containers work correctly
-- Test communication between containers if applicable
-- Document this process with screenshots
+## Step 5: Create Kubernetes Manifest Files
+### Defining Your Kubernetes Resources
 
-## Step 4: Version Control Setup
+1. Create `deployment.yaml` to define how Kubernetes should run your application
+   - Set replica count
+   - Define container specifications
+   - Configure ports and resource requests
 
-### Create GitHub Repository
-- Go to GitHub and create a new repository
-- Give it a descriptive name related to your project
-- Make it public for easy access
+2. Create `service.yaml` to expose your application
+   - Define service type (e.g., NodePort)
+   - Configure port mapping
+   - Link to your deployment using selectors
 
-### Initialize Git Repository
-- Open terminal in your project directory
-- Initialize git with `git init`
-- Add your files with `git add .`
-- Commit with `git commit -m "Initial commit"`
-- Link to your GitHub repository with `git remote add origin URL`
-- Push to GitHub with `git push -u origin main`
+**Best Practices**:
+- Place Kubernetes manifest files in the root directory of your project
+- Use meaningful names and labels for your resources
+- Include comments explaining the purpose of each section
 
-### Create README.md
-- Create a comprehensive README.md file
-- Include project description
-- List technologies used
-- Provide setup and running instructions
-- Add team member information
-- Push this to GitHub
+## Step 6: Start the Kubernetes Cluster
+### Launching Your Local Environment
 
-## Step 5: Docker Hub Setup
+1. Start Minikube with `minikube start`
+2. Configure your terminal to use Minikube's Docker daemon with `eval $(minikube docker-env)`
+3. Verify Minikube is running with `minikube status`
 
-### Create Docker Hub Account
-- Go to Docker Hub website and create an account
-- Verify your email
+## Step 7: Set Up Docker Hub
+### Preparing for Image Distribution
 
-### Create Repositories
-- Create two repositories on Docker Hub:
-  - One for frontend (e.g., my-frontend)
-  - One for backend (e.g., my-backend)
-- Set visibility (public or private) for both
+1. Create an account on [Docker Hub](https://hub.docker.com/) if you don't have one
+2. Create a new repository for your application
+3. Push your locally built image to Docker Hub
+4. Verify your image is available in your Docker Hub repository
 
-### Push Images to Docker Hub
-- Login to Docker Hub from terminal: `docker login`
-- Tag your frontend image: `docker tag my-frontend:latest username/my-frontend:latest`
-- Tag your backend image: `docker tag my-backend:latest username/my-backend:latest`
-- Push frontend image: `docker push username/my-frontend:latest`
-- Push backend image: `docker push username/my-backend:latest`
-- Verify both images appear in your Docker Hub repositories
-- Document this entire process with screenshots
+## Step 8: Set Up GitHub Actions Workflow
+### Automating Deployment
 
-## Step 6: Kubernetes Configuration Files
+1. Set up a self-hosted GitHub Actions runner on your local machine
+   - Follow the instructions at GitHub repository settings > Actions > Runners
+   - Install and configure the runner on the same machine where Minikube is running
 
-### Create namespace.yaml
-- Create a file named `namespace.yaml`
-- Define a new namespace for your project
-- This namespace will isolate your resources from others
-- Document this file creation
+2. Create a `.github/workflows` directory in your repository
+3. Create a `deploy.yml` file to define your workflow
+   - Configure workflow to trigger on push to main branch
+   - Define steps for checkout, building, and deploying your application
+   - Add secrets for Docker Hub authentication
 
-### Create Separate Deployment Files
-- Create two deployment files:
-  - `frontend-deployment.yaml` for frontend
-  - `backend-deployment.yaml` for backend
-- For each deployment file:
-  - Define how each component should be deployed
-  - Specify number of replicas (e.g., 2)
-  - Reference the corresponding Docker Hub image
-  - Specify appropriate container ports
-  - Use your custom namespace
-  - Set resource limits if necessary
-- Document the creation of both files with screenshots
+**Important**: Add your Docker Hub credentials as GitHub secrets to ensure secure authentication.
 
-### Create Separate Service Files
-- Create two service files:
-  - `frontend-service.yaml` for frontend
-  - `backend-service.yaml` for backend
-- For frontend service:
-  - Use NodePort type for external access
-  - Specify port mappings
-  - Reference your frontend deployment
-  - Use your custom namespace
-- For backend service:
-  - Use ClusterIP type (internal access) or NodePort as needed
-  - Specify port mappings
-  - Reference your backend deployment
-  - Use your custom namespace
-- Document the creation of both files with screenshots
+## Step 9: Trigger Local Deployment
+### Deploying to Kubernetes
 
-## Step 7: Minikube Deployment
+1. Ensure your Kubernetes manifest files reference your Docker Hub image
+2. Apply your Kubernetes manifest files to your Minikube cluster
+3. Verify your application is deployed successfully
 
-### Start Minikube
-- Run `minikube start` to initialize your local Kubernetes cluster
-- Wait for it to complete
-- Document this process with screenshots
+**Deployment Commands**:
+- Apply deployment with `kubectl apply -f deployment.yaml`
+- Apply service with `kubectl apply -f service.yaml`
+- Check status with `kubectl get all`
 
-### Configure Docker to Use Minikube
-- Run `eval $(minikube docker-env)` to point Docker to Minikube's daemon
-- Document this step
+## Step 10: Verify the Deployment
+### Testing Your Kubernetes Resources
 
-### Create Namespace
-- Run `kubectl apply -f namespace.yaml` to create your namespace
-- Verify with `kubectl get namespaces`
-- Document this step
+1. Create a new namespace for your application
+2. Check the status of your pods, services, and deployments
+3. Ensure everything is running as expected
+4. Troubleshoot any issues that arise
 
-### Deploy Application
-- Run `kubectl apply -f frontend-deployment.yaml` to create your frontend deployment
-- Run `kubectl apply -f backend-deployment.yaml` to create your backend deployment
-- Run `kubectl apply -f frontend-service.yaml` to create your frontend service
-- Run `kubectl apply -f backend-service.yaml` to create your backend service
-- Document these commands with screenshots
+**Verification Commands**:
+- Create namespace: `kubectl create namespace your-namespace`
+- View resources: `kubectl get pods,services,deployments -n your-namespace -o wide`
 
-### Verify Deployment
-- Run `kubectl get pods -n your-namespace -o wide` to see your pods
-- Run `kubectl get services -n your-namespace -o wide` to see your services
-- Run `kubectl get deployments -n your-namespace -o wide` to see your deployments
-- Run `kubectl get nodes -o wide` to see your nodes
-- Document all outputs with screenshots
+## Step 11: Access the Application
+### Accessing Your Deployed Service
 
-### Access Your Application
-- Run `minikube service service-name -n your-namespace` to access your application
-- This will open your application in a browser
-- Document this step with screenshots
+1. Use Minikube's service command to access your application
+2. Test the functionality of your deployed application
+3. Verify that your CI/CD pipeline works by making changes to your code and pushing them
 
-## Step 8: GitHub Actions CI/CD Setup
+**Access Command**:
+- Access service: `minikube service your-service-name -n your-namespace`
 
-### Set Up GitHub Secrets
-- Go to your repository on GitHub
-- Navigate to Settings > Secrets and variables > Actions
-- Add Docker Hub credentials as secrets:
-  - DOCKER_USERNAME
-  - DOCKER_PASSWORD
-
-### Set Up Self-Hosted Runner
-- Go to your repository on GitHub
-- Navigate to Settings > Actions > Runners
-- Click "New self-hosted runner"
-- Follow the instructions to set up on your machine
-- Keep the runner running during development
-- Document this process with screenshots
-
-### Create GitHub Actions Workflow
-- Create a directory `.github/workflows` in your project
-- Create a file `deploy.yml` in this directory
-- Define triggers (e.g., push to main branch)
-- Define jobs and steps:
-  - Checkout code
-  - Configure Docker with Minikube
-  - Build both frontend and backend Docker images
-  - Push both images to Docker Hub
-  - Deploy all Kubernetes manifests to Minikube
-  - Verify deployment of all components
-- Make sure your workflow handles both frontend and backend components
-- Document this process with screenshots
-
-### Test CI/CD Pipeline
-- Make a small change to your application
-- Commit and push to GitHub
-- Watch the GitHub Actions workflow run
-- Verify the deployment happens automatically
-- Document this process with screenshots
-
-## Step 9: Document Issues and Solutions
-
-### Document At Least 5 Issues
-For each issue:
-- Clearly describe the problem
-- Include screenshots showing the error
-- Explain your approach to solving it
-- Document the final solution
-- Include commands used to resolve the issue
-
-Possible issues to document:
-1. Docker installation or permission issues
-2. Minikube resource limitations
-3. Kubernetes deployment errors
-4. GitHub Actions configuration problems
-5. Container networking issues
-6. Application configuration in Kubernetes
-7. Self-hosted runner connectivity issues
-
-## Step 10: Prepare Project Report
-
-### Include All Required Sections
-- Step-by-step explanation of all project steps
-- Environment details (OS, versions)
-- Screenshots for all major steps
-- Commands used with explanations
-- At least 5 issues faced and solutions
-- Project running instructions
-- OS choice justification
-
-### Format Report Professionally
-- Use clear section headings
-- Include a table of contents
-- Number steps and sections
-- Include team member information
-- Use proper formatting for commands and file contents
-
-## Step 11: Project Submission
-
-### Submit Google Form
-- Fill in the required Google Form by May 7, 2025
-- Form link: [Project Submission Form](https://docs.google.com/forms/d/e/1FAIpQLSdsyQK29lKDeZ1iK3WiLKYCZRxm23w8RUCIx9VT-izB3VrmOQ/viewform?usp=sharing)
-
-### Submit Project Report
-- Submit your project report by May 12, 2025
-- Follow the submission instructions provided by your instructor
-
-### Prepare for Viva
-- Be ready to demonstrate your project
-- Review all steps and concepts
-- Ensure your application and CI/CD pipeline are working
-- Be prepared to answer questions about your implementation
-
-## Final Project Structure
-
-Your project should have the following structure:
-```
-├── frontend/ (frontend application code)
-│   └── Dockerfile
-├── backend/ (backend application code)
-│   └── Dockerfile
-├── kubernetes/
-│   ├── namespace.yaml
-│   ├── frontend-deployment.yaml
-│   ├── backend-deployment.yaml
-│   ├── frontend-service.yaml
-│   └── backend-service.yaml
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
-└── README.md
+## Project Structure
 ```
 
-## Conclusion
+```
 
-Following this implementation guide will help you successfully complete your Kubernetes project. Remember to document every step thoroughly with screenshots and explanations for your project report. Good luck!
+## Project Report Requirements
+Your final project report should include:
+
+1. **Step-by-Step Explanation**
+   - Detailed walkthrough of each project step
+   - Environment setup details (OS and version, Minikube version, Docker version, kubectl version)
+   - Resource information (pods, services, deployments, nodes)
+
+2. **Screenshots**
+   - Visual documentation of each major step
+   - Include screenshots of Minikube installation, Docker image building, GitHub repository, GitHub Actions setup, and Kubernetes deployment
+
+3. **Commands and Descriptions**
+   - List all important commands used
+   - Brief explanation of what each command does
+
+4. **Issue Handling**
+   - Document at least 5 issues faced during implementation
+   - Include screenshots of each issue
+   - Explain how you resolved each issue
+
+5. **Running Instructions**
+   - How to start the application from scratch
+   - How to deploy locally using Minikube
+   - How to view the running application
+   - OS details and justification for your choice
+
+## OS Selection Justification
+Clearly explain your choice of operating system (Linux, Windows, or VM) with:
+- Reasons for selection
+- Advantages and challenges encountered
+- Impact on development or deployment workflow
+
+## Marks Distribution
+- Report Submission: 40 marks
+- Implementation: 60 marks (+ 5 bonus marks possible)
+
+## Important Dates
+- Registration Form Submission: May 7th, 2025
+- Report Submission Deadline: May 12th, 2025
+- Project Demonstration & Viva: To be announced
+
+---
+
+## Rubrics
+
+### 1. Project Report (40 Marks)
+| Criteria | Marks | Description |
+|----------|-------|-------------|
+| Step-by-step documentation | 10 | Clear explanation of all steps from installation to deployment |
+| Environment details | 5 | OS, Docker, Minikube, kubectl versions included |
+| Screenshots provided | 10 | Visuals for setup, deployment, and troubleshooting |
+| Commands and descriptions | 5 | All important commands used are listed and explained |
+| Issue handling | 10 | At least 5 problems faced + solutions, each with screenshots |
+
+### 2. Implementation (60 Marks + 5 Bonus Marks)
+| Criteria | Marks | Description |
+|----------|-------|-------------|
+| Web application working | 5 | Simple app is running and tested locally |
+| Dockerized correctly | 10 | Dockerfile builds and container runs the app successfully |
+| GitHub repository setup | 5 | Contains all code, Dockerfile, README, and Kubernetes files |
+| Kubernetes files present and correct | 15 | deployment.yaml and service.yaml are correctly written |
+| Minikube deployment working | 10 | App deployed locally via Minikube and accessible |
+| Docker Hub usage | 5 | Docker image is pushed and pulled from Docker Hub |
+| GitHub Actions CI/CD | 10 | Automated workflow builds and deploys the app |

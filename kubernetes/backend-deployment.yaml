@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextgen-backend
+  namespace: nextgen-academy
+  labels:
+    app: nextgen-backend
+    tier: backend
+spec:
+  # Define 2 replicas for high availability
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nextgen-backend
+  template:
+    metadata:
+      labels:
+        app: nextgen-backend
+    spec:
+      containers:
+      - name: nextgen-backend
+        image: ${hassangill}/nextgen-academy-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        # For development with Minikube, connect to host MongoDB
+        # In production, you would use a proper MongoDB service
+        - name: MONGODB_URI
+          value: "mongodb://host.minikube.internal:27017/nextgen-academy"
+        # Add any other environment variables your application needs here
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30

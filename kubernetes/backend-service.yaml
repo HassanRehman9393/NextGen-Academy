@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextgen-backend-service
+  namespace: nextgen-academy
+  labels:
+    app: nextgen-backend
+    tier: backend
+spec:
+  # Use ClusterIP as the backend should only be accessible within the cluster
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app: nextgen-backend
