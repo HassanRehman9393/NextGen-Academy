@@ -36,14 +36,16 @@ jobs:
         context: ./backend
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest
-      - name: Update Kubernetes manifests with Docker Hub username
+    
+    - name: Update Kubernetes manifests with Docker Hub username
       run: |
         $files = @("./kubernetes/frontend-deployment.yaml", "./kubernetes/backend-deployment.yaml")
         foreach ($file in $files) {
           (Get-Content $file) -replace '\$\{DOCKER_USERNAME\}', "${{ secrets.DOCKER_USERNAME }}" | Set-Content $file
         }
       shell: powershell
-      - name: Deploy to Kubernetes
+    
+    - name: Deploy to Kubernetes
       run: |
         # Create the namespace if it doesn't exist
         kubectl apply -f ./kubernetes/namespace.yaml
@@ -58,7 +60,8 @@ jobs:
         kubectl rollout status deployment/nextgen-frontend -n nextgen-academy --timeout=180s
         kubectl rollout status deployment/nextgen-backend -n nextgen-academy --timeout=180s
       shell: powershell
-      - name: Verify deployment
+    
+    - name: Verify deployment
       run: |
         Write-Host "Checking pods status..."
         kubectl get pods -n nextgen-academy
