@@ -55,89 +55,11 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Login to Docker Hub with enhanced error handling
-      run: |
-        # Set Docker timeout settings
-        $env:DOCKER_CLIENT_TIMEOUT = "180"
-        $env:COMPOSE_HTTP_TIMEOUT = "180"
-        $env:DOCKER_REGISTRY_TIMEOUT = "180"
-
-        # Configure Docker daemon settings if needed
-        if (-not (Test-Path "$env:USERPROFILE/.docker/daemon.json")) {
-            $config = @{
-                "registry-mirrors" = @("https://registry-1.docker.io")
-                "max-concurrent-downloads" = 1
-                "max-concurrent-uploads" = 1
-            }
-            New-Item -Path "$env:USERPROFILE/.docker" -ItemType Directory -Force
-            $config | ConvertTo-Json | Set-Content "$env:USERPROFILE/.docker/daemon.json"
-        }
-
-        $maxRetries = 3
-        $retryCount = 0
-        $success = $false
-
-        Write-Host "Attempting to log in to Docker Hub..."
-        
-        # Force credential check first
-        if ([string]::IsNullOrWhiteSpace($env:DOCKER_USERNAME)) {
-            Write-Host "::error::Docker Hub username is empty or not properly set in GitHub secrets."
-            exit 1
-        }
-        
-        if ([string]::IsNullOrWhiteSpace($env:DOCKER_PASSWORD)) {
-            Write-Host "::error::Docker Hub password/token is empty or not properly set in GitHub secrets."
-            exit 1
-        }
-        
-        Write-Host "Credentials are properly configured. Attempting login..."
-        
-        while (-not $success -and $retryCount -lt $maxRetries) {
-          try {
-            Write-Host "Attempt $($retryCount + 1) to log in to Docker Hub"
-            
-            # Create a secure string for the password
-            $securePassword = ConvertTo-SecureString $env:DOCKER_PASSWORD -AsPlainText -Force
-            
-            # Write password to a temporary file
-            $tempFile = [System.IO.Path]::GetTempFileName()
-            [System.IO.File]::WriteAllText($tempFile, $env:DOCKER_PASSWORD)
-            
-            # Use the temporary file for docker login
-            Get-Content $tempFile | docker login -u $env:DOCKER_USERNAME --password-stdin
-            
-            # Clean up the temporary file
-            Remove-Item $tempFile -Force
-            
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully logged in to Docker Hub"
-              $success = $true
-            } else {
-              Write-Host "Failed to log in to Docker Hub, exit code: $LASTEXITCODE"
-              $retryCount++
-              if ($retryCount -lt $maxRetries) {
-                Write-Host "Waiting 30 seconds before retrying..."
-                Start-Sleep -Seconds 30
-              }
-            }
-          } catch {
-            Write-Host "Error during Docker Hub login: $_"
-            $retryCount++
-            if ($retryCount -lt $maxRetries) {
-              Write-Host "Waiting 10 seconds before retrying..."
-              Start-Sleep -Seconds 10
-            }
-          }
-        }
-
-        if (-not $success) {
-          Write-Host "Failed to log in to Docker Hub after $maxRetries attempts."
-          exit 1
-        }
-      shell: powershell
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
     
     - name: Build and push Frontend image
       run: |
