@@ -17,12 +17,10 @@ spec:
       labels:
         app: nextgen-backend
     spec:
-      containers:
-      - name: nextgen-backend
-        image: ${hassangill}/nextgen-academy-backend:latest
+      containers:      - name: nextgen-backend
+        image: hassangill/nextgen-academy-backend:latest
         ports:
-        - containerPort: 8080
-        env:
+        - containerPort: 8080        env:
         - name: NODE_ENV
           value: "production"
         - name: PORT
@@ -31,7 +29,8 @@ spec:
         # In production, you would use a proper MongoDB service
         - name: MONGODB_URI
           value: "mongodb://host.minikube.internal:27017/nextgen-academy"
-        # Add any other environment variables your application needs here        resources:
+        # Add any other environment variables your application needs here
+        resources:
           requests:
             memory: "128Mi"
             cpu: "100m"
@@ -43,10 +42,10 @@ spec:
             path: /api/health
             port: 8080
           initialDelaySeconds: 15
-          periodSeconds: 10
-        livenessProbe:
+          periodSeconds: 10        livenessProbe:
           httpGet:
             path: /api/health
             port: 8080
           initialDelaySeconds: 30
+          periodSeconds: 30
           periodSeconds: 30

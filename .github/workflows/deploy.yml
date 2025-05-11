@@ -65,7 +65,7 @@ jobs:
       run: |
         $files = @("./kubernetes/frontend-deployment.yaml", "./kubernetes/backend-deployment.yaml")
         foreach ($file in $files) {
-          (Get-Content $file) -replace '\$\{hassangill\}', "${{ secrets.DOCKER_USERNAME }}" | Set-Content $file
+          (Get-Content $file) -replace 'hassangill', "${{ secrets.DOCKER_USERNAME }}" | Set-Content $file
         }
       shell: powershell
       
@@ -95,9 +95,24 @@ jobs:
         kubectl apply -f ./kubernetes/frontend-deployment.yaml
         kubectl apply -f ./kubernetes/frontend-service.yaml
         
-        # Wait for deployments to be ready
-        kubectl rollout status deployment/nextgen-frontend -n nextgen-academy --timeout=180s
-        kubectl rollout status deployment/nextgen-backend -n nextgen-academy --timeout=180s
+        # Check container images are available
+        Write-Host "Checking if images are available in Docker Hub..."
+        docker pull ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest
+        docker pull ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
+        
+        # Give some time for the deployments to start
+        Start-Sleep -Seconds 30
+        
+        # Check pod status
+        Write-Host "Checking initial pod status..."
+        kubectl get pods -n nextgen-academy
+        
+        # Wait for deployments to be ready with increased timeout
+        Write-Host "Waiting for frontend deployment..."
+        kubectl rollout status deployment/nextgen-frontend -n nextgen-academy --timeout=300s
+        
+        Write-Host "Waiting for backend deployment..."
+        kubectl rollout status deployment/nextgen-backend -n nextgen-academy --timeout=300s
       shell: powershell
     
     - name: Verify deployment
