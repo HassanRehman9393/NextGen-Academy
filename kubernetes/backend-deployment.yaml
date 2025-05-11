@@ -7,8 +7,8 @@ metadata:
     app: nextgen-backend
     tier: backend
 spec:
-  # Define 2 replicas for high availability
-  replicas: 2
+  # Modified to use 1 replica for Minikube resource constraints
+  replicas: 1
   selector:
     matchLabels:
       app: nextgen-backend
@@ -31,14 +31,13 @@ spec:
         # In production, you would use a proper MongoDB service
         - name: MONGODB_URI
           value: "mongodb://host.minikube.internal:27017/nextgen-academy"
-        # Add any other environment variables your application needs here
-        resources:
+        # Add any other environment variables your application needs here        resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "300m"
         readinessProbe:
           httpGet:
             path: /api/health

@@ -7,8 +7,8 @@ metadata:
     app: nextgen-frontend
     tier: frontend
 spec:
-  # Define 2 replicas for high availability
-  replicas: 2
+  # Modified to use 1 replica for Minikube resource constraints
+  replicas: 1
   selector:
     matchLabels:
       app: nextgen-frontend
@@ -25,14 +25,13 @@ spec:
         env:
         - name: REACT_APP_API_URL
           # Point to the backend service within the Kubernetes cluster
-          value: http://nextgen-backend-service:8080/api
-        resources:
+          value: http://nextgen-backend-service:8080/api        resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "300m"
         readinessProbe:
           httpGet:
             path: /
