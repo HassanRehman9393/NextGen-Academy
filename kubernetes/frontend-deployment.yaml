@@ -15,7 +15,8 @@ spec:
   template:
     metadata:
       labels:
-        app: nextgen-frontend    spec:
+        app: nextgen-frontend
+    spec:
       containers:
       - name: nextgen-frontend
         image: hassangill/nextgen-academy-frontend:latest

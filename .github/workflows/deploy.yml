@@ -99,21 +99,49 @@ jobs:
         Write-Host "Validating Kubernetes YAML files..."
         
         Write-Host "Checking backend-deployment.yaml syntax:"
-        $backendYamlValid = kubectl apply --dry-run=client -f ./kubernetes/backend-deployment.yaml
+        kubectl apply --dry-run=client -f ./kubernetes/backend-deployment.yaml
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Error in backend-deployment.yaml. Please fix YAML syntax."
           Write-Host "Content of the file:"
           Get-Content ./kubernetes/backend-deployment.yaml
-          exit 1
+          
+          # Attempt to fix common YAML indentation issues
+          Write-Host "Attempting to fix YAML indentation issues..."
+          $content = Get-Content ./kubernetes/backend-deployment.yaml -Raw
+          $content = $content -replace "app: nextgen-backend\s+spec:", "app: nextgen-backend`n    spec:"
+          $content = $content -replace "periodSeconds: 10\s+livenessProbe:", "periodSeconds: 10`n        livenessProbe:"
+          $content | Set-Content ./kubernetes/backend-deployment.yaml
+          
+          # Try validation again
+          kubectl apply --dry-run=client -f ./kubernetes/backend-deployment.yaml
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Unable to automatically fix backend-deployment.yaml. Manual fix required."
+            exit 1
+          }
+          Write-Host "Successfully fixed backend-deployment.yaml"
         }
         
         Write-Host "Checking frontend-deployment.yaml syntax:"
-        $frontendYamlValid = kubectl apply --dry-run=client -f ./kubernetes/frontend-deployment.yaml
+        kubectl apply --dry-run=client -f ./kubernetes/frontend-deployment.yaml
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Error in frontend-deployment.yaml. Please fix YAML syntax."
           Write-Host "Content of the file:"
           Get-Content ./kubernetes/frontend-deployment.yaml
-          exit 1
+          
+          # Attempt to fix common YAML indentation issues
+          Write-Host "Attempting to fix YAML indentation issues..."
+          $content = Get-Content ./kubernetes/frontend-deployment.yaml -Raw
+          $content = $content -replace "app: nextgen-frontend\s+spec:", "app: nextgen-frontend`n    spec:"
+          $content = $content -replace "periodSeconds: 5\s+livenessProbe:", "periodSeconds: 5`n        livenessProbe:"
+          $content | Set-Content ./kubernetes/frontend-deployment.yaml
+          
+          # Try validation again
+          kubectl apply --dry-run=client -f ./kubernetes/frontend-deployment.yaml
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Unable to automatically fix frontend-deployment.yaml. Manual fix required."
+            exit 1
+          }
+          Write-Host "Successfully fixed frontend-deployment.yaml"
         }
         
         # Apply deployments and services
