@@ -15,12 +15,13 @@ spec:
   template:
     metadata:
       labels:
-        app: nextgen-frontend
-    spec:
-      containers:      - name: nextgen-frontend
+        app: nextgen-frontend    spec:
+      containers:
+      - name: nextgen-frontend
         image: hassangill/nextgen-academy-frontend:latest
         ports:
-        - containerPort: 3000        env:
+        - containerPort: 3000
+        env:
         - name: REACT_APP_API_URL
           # Point to the backend service within the Kubernetes cluster
           value: http://nextgen-backend-service:8080/api

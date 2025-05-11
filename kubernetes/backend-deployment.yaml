@@ -15,12 +15,13 @@ spec:
   template:
     metadata:
       labels:
-        app: nextgen-backend
-    spec:
-      containers:      - name: nextgen-backend
+        app: nextgen-backend    spec:
+      containers:
+      - name: nextgen-backend
         image: hassangill/nextgen-academy-backend:latest
         ports:
-        - containerPort: 8080        env:
+        - containerPort: 8080
+        env:
         - name: NODE_ENV
           value: "production"
         - name: PORT

@@ -63,9 +63,15 @@ jobs:
     
     - name: Update Kubernetes manifests with Docker Hub username
       run: |
+        Write-Host "Current Docker Username: ${{ secrets.DOCKER_USERNAME }}"
         $files = @("./kubernetes/frontend-deployment.yaml", "./kubernetes/backend-deployment.yaml")
         foreach ($file in $files) {
-          (Get-Content $file) -replace 'hassangill', "${{ secrets.DOCKER_USERNAME }}" | Set-Content $file
+          Write-Host "Processing file: $file"
+          $content = Get-Content $file
+          $updatedContent = $content -replace 'hassangill/nextgen-academy', "${{ secrets.DOCKER_USERNAME }}/nextgen-academy"
+          $updatedContent | Set-Content $file
+          Write-Host "Updated content:"
+          Get-Content $file | Select-String -Pattern "image:"
         }
       shell: powershell
       
@@ -89,9 +95,33 @@ jobs:
         # Create the namespace if it doesnt exist
         kubectl apply -f ./kubernetes/namespace.yaml
         
+        # Validate YAML files before applying
+        Write-Host "Validating Kubernetes YAML files..."
+        
+        Write-Host "Checking backend-deployment.yaml syntax:"
+        $backendYamlValid = kubectl apply --dry-run=client -f ./kubernetes/backend-deployment.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Error in backend-deployment.yaml. Please fix YAML syntax."
+          Write-Host "Content of the file:"
+          Get-Content ./kubernetes/backend-deployment.yaml
+          exit 1
+        }
+        
+        Write-Host "Checking frontend-deployment.yaml syntax:"
+        $frontendYamlValid = kubectl apply --dry-run=client -f ./kubernetes/frontend-deployment.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Error in frontend-deployment.yaml. Please fix YAML syntax."
+          Write-Host "Content of the file:"
+          Get-Content ./kubernetes/frontend-deployment.yaml
+          exit 1
+        }
+        
         # Apply deployments and services
+        Write-Host "Applying backend deployment and service..."
         kubectl apply -f ./kubernetes/backend-deployment.yaml
         kubectl apply -f ./kubernetes/backend-service.yaml
+        
+        Write-Host "Applying frontend deployment and service..."  
         kubectl apply -f ./kubernetes/frontend-deployment.yaml
         kubectl apply -f ./kubernetes/frontend-service.yaml
         
@@ -101,11 +131,22 @@ jobs:
         docker pull ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
         
         # Give some time for the deployments to start
+        Write-Host "Waiting for pods to initialize (30 seconds)..."
         Start-Sleep -Seconds 30
         
-        # Check pod status
+        # Check pod status and get detailed information if there are issues
         Write-Host "Checking initial pod status..."
         kubectl get pods -n nextgen-academy
+        
+        # Check for InvalidImageName or other issues
+        $problemPods = kubectl get pods -n nextgen-academy -o json | ConvertFrom-Json
+        foreach ($pod in $problemPods.items) {
+            if ($pod.status.phase -ne "Running") {
+                Write-Host "Problem with pod: $($pod.metadata.name)"
+                Write-Host "Detailed pod information:"
+                kubectl describe pod $pod.metadata.name -n nextgen-academy
+            }
+        }
         
         # Wait for deployments to be ready with increased timeout
         Write-Host "Waiting for frontend deployment..."
