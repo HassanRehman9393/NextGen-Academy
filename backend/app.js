@@ -29,13 +29,13 @@ connectDB();
 
 const app = express();
 
+
 // CORS configuration
+
+// CORS configuration - using a more permissive configuration for development
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://next-gen-academy.vercel.app', // Add your frontend Vercel URL
-        process.env.FRONTEND_URL
-    ],
+    origin: true, // Allow all origins for development, change to specific origins in production
+
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
@@ -58,7 +58,11 @@ app.use(express.json({
                 success: false, 
                 message: 'Invalid JSON payload' 
             });
+
             throw Error('Invalid JSON');
+
+            // Don't throw error here, as it prevents the response from being sent properly
+            req.invalidJSON = true; // Mark the request as invalid
         }
     }
 }));
@@ -129,6 +133,16 @@ app.use((error, req, res, next) => {
     }
     next();
 });
+
+
+// Add middleware to check for invalidJSON flag
+app.use((req, res, next) => {
+    if (req.invalidJSON === true) {
+        return; // Response was already sent in the verify function
+    }
+    next();
+});
+
 
 // Port configuration
 const port = process.env.PORT || 8080;

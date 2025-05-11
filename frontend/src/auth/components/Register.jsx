@@ -22,6 +22,16 @@ const getPasswordStrengthColor = (password) => {
     return 'bg-green-500';
 };
 
+
+const PASSWORD_REQUIREMENTS = [
+    { text: 'At least 8 characters', test: (pwd) => pwd.length >= 8 },
+    { text: 'At least one lowercase letter', test: (pwd) => /[a-z]/.test(pwd) },
+    { text: 'At least one uppercase letter', test: (pwd) => /[A-Z]/.test(pwd) },
+    { text: 'At least one number', test: (pwd) => /[0-9]/.test(pwd) },
+    { text: 'At least one special character', test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
+];
+
+
 const Register = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -54,6 +64,15 @@ const Register = () => {
             return;
         }
 
+        // Validate password meets all requirements
+        const failedRequirements = PASSWORD_REQUIREMENTS.filter(req => !req.test(formData.password));
+        if (failedRequirements.length > 0) {
+            setError(`Password does not meet requirements: ${failedRequirements.map(r => r.text.toLowerCase()).join(', ')}`);
+            setLoading(false);
+            return;
+        }
+
+
         try {
             const response = await authService.register(formData);
             
@@ -65,7 +84,26 @@ const Register = () => {
                 }, 5000);
             }
         } catch (err) {
+
             setError(err.message || 'Registration failed');
+
+            console.error('Registration error:', err);
+            // Handle array of errors or single error message
+            if (err.message && err.message.includes('errors')) {
+                try {
+                    const errorData = JSON.parse(err.message);
+                    if (Array.isArray(errorData.errors)) {
+                        setError(errorData.errors.join(', '));
+                    } else {
+                        setError(err.message);
+                    }
+                } catch (e) {
+                    setError(err.message);
+                }
+            } else {
+                setError(err.message || 'Registration failed');
+            }
+
         } finally {
             setLoading(false);
         }
@@ -149,6 +187,14 @@ const Register = () => {
                                                 style={{ width: `${(getPasswordStrength(formData.password) / 5) * 100}%` }}
                                             ></div>
                                         </div>
+                                        <div className="mt-2 grid grid-cols-2 gap-2">
+                                            {PASSWORD_REQUIREMENTS.map((req, index) => (
+                                                <div key={index} className="flex items-center text-xs">
+                                                    <div className={`w-2 h-2 rounded-full mr-1 ${req.test(formData.password) ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                                                    <span className={req.test(formData.password) ? 'text-green-300' : 'text-gray-400'}>{req.text}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                                 {error && (
@@ -195,11 +241,22 @@ const Register = () => {
                                 </Link>
                             </div>
                         </form>
+                        <div className="mt-6 text-white/80">
+                            <h3 className="text-lg font-semibold">Password Requirements:</h3>
+                            <ul className="list-disc list-inside">
+                                {PASSWORD_REQUIREMENTS.map((req, index) => (
+                                    <li key={index} className={req.test(formData.password) ? 'text-green-400' : 'text-red-400'}>
+                                        {req.text}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </div>
                 </motion.div>
             </div>
         </div>
     );
 };
+
 
 export default Register; 
