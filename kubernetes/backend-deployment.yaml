@@ -17,21 +17,28 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ${DOCKER_USERNAME}/nextgen-academy-backend:latest
-        imagePullPolicy: Always
+        image: hassangill/nextgen-academy-backend:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # Patch socialAuthService.js to skip OAuth initialization
+            sed -i 's/initializeStrategies() {/initializeStrategies() { if (process.env.NODE_ENV === "production") { console.log("Skipping OAuth setup in production"); return; }/g' /app/src/modules/auth/services/socialAuthService.js
+            # Start the application
+            node app.js
         ports:
         - containerPort: 8080
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: PORT
-          value: "8080"
-        - name: MONGODB_URI
-          value: "mongodb://mongodb:27017/nextgen-academy"
+        envFrom:
+        - configMapRef:
+            name: backend-config
         resources:
           limits:
             cpu: "500m"
             memory: "512Mi"
           requests:
             cpu: "200m"
-            memory: "256Mi" 
+            memory: "256Mi"
+      volumes:
+      - name: patch-script
+        configMap:
+          name: backend-patch-script 

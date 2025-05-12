@@ -86,6 +86,9 @@ jobs:
         # Create namespace if it doesn't exist
         kubectl apply -f kubernetes/namespace.yaml
         
+        # Apply ConfigMap first
+        kubectl apply -f kubernetes/backend-config.yaml
+        
         # Apply MongoDB resources
         kubectl apply -f kubernetes/mongodb-deployment.yaml
         kubectl apply -f kubernetes/mongodb-service.yaml
