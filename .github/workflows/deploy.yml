@@ -9,77 +9,71 @@ on:
 jobs:
   build-deploy:
     runs-on: self-hosted
-    timeout-minutes: 30
 
     steps:
+    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Step 2: Configure Docker to point at Minikube's daemon
     - name: Set up Docker to use Minikube's environment
       run: |
         echo "Configuring Docker to use Minikube's daemon..."
-        minikube docker-env | Invoke-Expression
-      shell: powershell
+        eval $(minikube docker-env)
+      shell: bash
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build Frontend Docker image
+    # Step 3: Build the Docker images
+    - name: Build Docker images
       run: |
-        cd frontend
-        echo "Building frontend Docker image..."
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest .
-      shell: powershell
-
-    - name: Build Backend Docker image
-      run: |
+        # Build backend image
         cd backend
-        echo "Building backend Docker image..."
         docker build -t ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest .
-      shell: powershell
+        
+        # Build frontend image
+        cd ../frontend
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest .
+      shell: bash
 
+    # Step 4: Log in to Docker Hub
+    - name: Login to Docker Hub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      shell: bash
+
+    # Step 5: Push the images to Docker Hub
     - name: Push Docker images to Docker Hub
       run: |
-        echo "Pushing Docker images to Docker Hub..."
-        docker push ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest
-      shell: powershell
+        docker push ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
+      shell: bash
 
+    # Prepare deployment files
     - name: Update deployment files
       run: |
-        echo "Updating Kubernetes deployment files..."
-        (Get-Content kubernetes/frontend-deployment.yaml) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content kubernetes/frontend-deployment.yaml
-        (Get-Content kubernetes/backend-deployment.yaml) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content kubernetes/backend-deployment.yaml
-      shell: powershell
+        # Replace placeholder with actual Docker Hub username
+        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" kubernetes/backend-deployment.yaml
+        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" kubernetes/frontend-deployment.yaml
+      shell: bash
 
-    - name: Create namespace if not exists
-      run: kubectl apply -f kubernetes/namespace.yaml
-      shell: powershell
-
-    - name: Clean up existing resources
-      run: |
-        echo "Cleaning up existing resources to avoid conflicts..."
-        kubectl delete deployment --all -n nextgen-academy --ignore-not-found
-        kubectl delete service frontend backend -n nextgen-academy --ignore-not-found
-      shell: powershell
-
+    # Step 6: Deploy to the Minikube cluster
     - name: Deploy to Minikube
       run: |
-        echo "Deploying to Minikube..."
+        # Create namespace if it doesn't exist
+        kubectl apply -f kubernetes/namespace.yaml
+        
+        # Apply MongoDB resources
         kubectl apply -f kubernetes/mongodb-deployment.yaml
         kubectl apply -f kubernetes/mongodb-service.yaml
+        
+        # Apply backend resources
         kubectl apply -f kubernetes/backend-deployment.yaml
         kubectl apply -f kubernetes/backend-service.yaml
+        
+        # Apply frontend resources
         kubectl apply -f kubernetes/frontend-deployment.yaml
         kubectl apply -f kubernetes/frontend-service.yaml
-      shell: powershell
-
-    - name: Verify deployment
-      run: |
-        echo "Verifying deployment..."
+        
+        # Verify deployment
+        echo "Deployment completed. Verifying..."
         kubectl get pods -n nextgen-academy
         kubectl get services -n nextgen-academy
-      shell: powershell 
+      shell: bash 
