@@ -38,18 +38,28 @@ jobs:
         
     - name: Update deployment files
       run: |
-        cd kubernetes
-        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" backend-deployment.yaml
-        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" frontend-deployment.yaml
-      shell: bash
+        $repoRoot = $env:GITHUB_WORKSPACE
+        Write-Host "Repository root: $repoRoot"
+        $backendPath = Join-Path -Path $repoRoot -ChildPath "kubernetes\backend-deployment.yaml"
+        $frontendPath = Join-Path -Path $repoRoot -ChildPath "kubernetes\frontend-deployment.yaml"
+        Write-Host "Updating $backendPath"
+        (Get-Content $backendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $backendPath
+        Write-Host "Updating $frontendPath"
+        (Get-Content $frontendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $frontendPath
+      shell: pwsh
         
     - name: Deploy to Kubernetes
       run: |
-        kubectl apply -f kubernetes/namespace.yaml
-        kubectl apply -k kubernetes/
-      shell: bash
+        $repoRoot = $env:GITHUB_WORKSPACE
+        $namespacePath = Join-Path -Path $repoRoot -ChildPath "kubernetes\namespace.yaml"
+        $kubernetesDirPath = Join-Path -Path $repoRoot -ChildPath "kubernetes"
+        Write-Host "Applying namespace: $namespacePath"
+        kubectl apply -f $namespacePath
+        Write-Host "Applying kubernetes resources from $kubernetesDirPath"
+        kubectl apply -k $kubernetesDirPath
+      shell: pwsh
         
     - name: Verify deployment
       run: |
         kubectl get all -n nextgen-academy
-      shell: bash 
+      shell: pwsh 

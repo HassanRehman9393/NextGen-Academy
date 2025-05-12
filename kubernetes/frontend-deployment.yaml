@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ${DOCKER_USERNAME}/nextgen-academy-frontend:latest
+        image: hassangill/nextgen-academy-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
