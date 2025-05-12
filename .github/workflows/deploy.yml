@@ -45,6 +45,28 @@ jobs:
         minikube status
       shell: powershell
       
+    # Log in to Docker Hub (to satisfy Step 8 requirements)
+    - name: Log in to Docker Hub
+      run: |
+        Write-Host "Logging in to Docker Hub..."
+        $dockerUsername = $env:DOCKER_USERNAME
+        $dockerPassword = $env:DOCKER_PASSWORD
+        
+        if (-not $dockerUsername -or -not $dockerPassword) {
+          Write-Host "::warning::Docker Hub credentials not provided. Skipping Docker Hub login."
+        } else {
+          docker login -u $dockerUsername -p $dockerPassword
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::Failed to log in to Docker Hub. Continuing anyway."
+          } else {
+            Write-Host "Successfully logged in to Docker Hub."
+          }
+        }
+      shell: powershell
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      
     # Update deployment files without building Docker images first
     - name: Update deployment files
       run: |
@@ -102,10 +124,24 @@ jobs:
           Write-Host "Namespace already exists, skipping creation"
         }
         
+        # Delete existing deployments to avoid immutable field issues
+        Write-Host "Cleaning up existing resources..."
+        kubectl delete deployment --all -n nextgen-academy --ignore-not-found
+        
+        # Delete frontend service to avoid nodePort conflict
+        Write-Host "Deleting frontend service to avoid nodePort conflict..."
+        kubectl delete service frontend -n nextgen-academy --ignore-not-found
+        
         # Apply Kubernetes resources
         Write-Host "Applying Kubernetes resources from $kubernetesDirPath"
         $result = kubectl apply -k $kubernetesDirPath
         Write-Host $result
+        
+        # Check for errors in the result
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "::error::Failed to apply Kubernetes resources."
+          exit 1
+        }
       shell: powershell
       
     - name: Verify deployment

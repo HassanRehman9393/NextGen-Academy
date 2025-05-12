@@ -1,6 +1,6 @@
 # GitHub Actions Local Kubernetes Deployment
 
-This simplified workflow deploys your application to a local Kubernetes (Minikube) cluster.
+This workflow deploys your application to a local Kubernetes (Minikube) cluster.
 
 ## Prerequisites
 
@@ -10,6 +10,12 @@ Before running this workflow, ensure:
 2. Docker is installed and running on your machine
 3. Minikube is installed and started
 4. kubectl is installed and configured to use your Minikube cluster
+
+## Required Secrets
+
+Add these secrets to your GitHub repository (Settings > Secrets and variables > Actions):
+- `DOCKER_USERNAME`: Your Docker Hub username
+- `DOCKER_PASSWORD`: Your Docker Hub password or access token
 
 ## How to Use This Workflow
 
@@ -30,10 +36,11 @@ Before running this workflow, ensure:
 ## What This Workflow Does
 
 1. **Checks prerequisites**: Verifies Docker, kubectl, and Minikube are installed
-2. **Updates deployment files**: Replaces `${DOCKER_USERNAME}` placeholder in deployment YAML files
-3. **Deploys to Kubernetes**: Applies the Kubernetes manifests to your local Minikube cluster
-4. **Verifies deployment**: Shows running pods and services
+2. **Logs in to Docker Hub**: Authenticates with Docker Hub using your credentials
+3. **Updates deployment files**: Replaces `${DOCKER_USERNAME}` placeholder in deployment YAML files
+4. **Deploys to Kubernetes**: Applies the Kubernetes manifests to your local Minikube cluster
+5. **Verifies deployment**: Shows running pods and services
 
 ## Note
 
-This workflow is optimized for local Kubernetes deployment only. It doesn't build or push Docker images to Docker Hub, so make sure your Kubernetes manifests are configured to use the correct images. 
+This workflow now includes all elements required for Step 8 of the project, including Docker Hub authentication, but still focuses on the local Kubernetes deployment to ensure reliability. 
