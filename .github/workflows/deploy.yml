@@ -12,6 +12,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+    
+    - name: Install PowerShell Core
+      run: |
+        # Install PowerShell Core for Windows
+        $url = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi"
+        $outFile = "$env:TEMP\powershell.msi"
+        Invoke-WebRequest -Uri $url -OutFile $outFile
+        Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $outFile, "/quiet", "/passive" -Wait
+        Write-Host "PowerShell Core installed successfully"
+      shell: powershell
       
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -46,7 +56,7 @@ jobs:
         (Get-Content $backendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $backendPath
         Write-Host "Updating $frontendPath"
         (Get-Content $frontendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $frontendPath
-      shell: pwsh
+      shell: powershell
         
     - name: Deploy to Kubernetes
       run: |
@@ -57,9 +67,9 @@ jobs:
         kubectl apply -f $namespacePath
         Write-Host "Applying kubernetes resources from $kubernetesDirPath"
         kubectl apply -k $kubernetesDirPath
-      shell: pwsh
+      shell: powershell
         
     - name: Verify deployment
       run: |
         kubectl get all -n nextgen-academy
-      shell: pwsh 
+      shell: powershell 
