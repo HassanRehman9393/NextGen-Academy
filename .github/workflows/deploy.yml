@@ -8,58 +8,121 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
+    timeout-minutes: 30  # Set a timeout to prevent infinite running
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
       
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        
-    - name: Build and push backend image
-      uses: docker/build-push-action@v4
-      with:
-        context: ./backend
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest
-        
-    - name: Build and push frontend image
-      uses: docker/build-push-action@v4
-      with:
-        context: ./frontend
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
-        
+    # Check prerequisites
+    - name: Check Docker
+      run: |
+        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+          Write-Host "::error::Docker is not installed or not in PATH. Please install Docker."
+          exit 1
+        }
+        Write-Host "Docker is installed at $(Get-Command docker | Select-Object -ExpandProperty Source)"
+        docker --version
+      shell: powershell
+    
+    - name: Check kubectl
+      run: |
+        if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+          Write-Host "::error::kubectl is not installed or not in PATH. Please install kubectl."
+          exit 1
+        }
+        Write-Host "kubectl is installed at $(Get-Command kubectl | Select-Object -ExpandProperty Source)"
+        kubectl version --client
+      shell: powershell
+      
+    - name: Check Minikube
+      run: |
+        if (-not (Get-Command minikube -ErrorAction SilentlyContinue)) {
+          Write-Host "::error::Minikube is not installed or not in PATH. Please install Minikube."
+          exit 1
+        }
+        Write-Host "Minikube is installed at $(Get-Command minikube | Select-Object -ExpandProperty Source)"
+        minikube status
+      shell: powershell
+      
+    # Update deployment files without building Docker images first
     - name: Update deployment files
       run: |
         $repoRoot = $env:GITHUB_WORKSPACE
         Write-Host "Repository root: $repoRoot"
         $backendPath = Join-Path -Path $repoRoot -ChildPath "kubernetes\backend-deployment.yaml"
         $frontendPath = Join-Path -Path $repoRoot -ChildPath "kubernetes\frontend-deployment.yaml"
-        Write-Host "Updating $backendPath"
-        (Get-Content $backendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $backendPath
-        Write-Host "Updating $frontendPath"
-        (Get-Content $frontendPath) -replace '\${DOCKER_USERNAME}', '${{ secrets.DOCKER_USERNAME }}' | Set-Content $frontendPath
-      shell: powershell
         
+        # Verify files exist
+        if (-not (Test-Path $backendPath)) {
+          Write-Host "::error::Backend deployment file not found at $backendPath"
+          exit 1
+        }
+        if (-not (Test-Path $frontendPath)) {
+          Write-Host "::error::Frontend deployment file not found at $frontendPath"
+          exit 1
+        }
+        
+        # Use a placeholder username if secret isn't available (for testing)
+        $dockerUsername = if ($env:DOCKER_USERNAME) { $env:DOCKER_USERNAME } else { "your-username" }
+        Write-Host "Using Docker username: $dockerUsername"
+        
+        Write-Host "Updating $backendPath"
+        (Get-Content $backendPath) -replace '\${DOCKER_USERNAME}', $dockerUsername | Set-Content $backendPath
+        
+        Write-Host "Updating $frontendPath"
+        (Get-Content $frontendPath) -replace '\${DOCKER_USERNAME}', $dockerUsername | Set-Content $frontendPath
+      shell: powershell
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        
+    # Local Kubernetes deployment without Docker Hub
     - name: Deploy to Kubernetes
       run: |
         $repoRoot = $env:GITHUB_WORKSPACE
         $namespacePath = Join-Path -Path $repoRoot -ChildPath "kubernetes\namespace.yaml"
         $kubernetesDirPath = Join-Path -Path $repoRoot -ChildPath "kubernetes"
-        Write-Host "Applying namespace: $namespacePath"
-        kubectl apply -f $namespacePath
-        Write-Host "Applying kubernetes resources from $kubernetesDirPath"
-        kubectl apply -k $kubernetesDirPath
-      shell: powershell
         
+        # Verify files exist
+        if (-not (Test-Path $namespacePath)) {
+          Write-Host "::error::Namespace file not found at $namespacePath"
+          exit 1
+        }
+        if (-not (Test-Path $kubernetesDirPath)) {
+          Write-Host "::error::Kubernetes directory not found at $kubernetesDirPath"
+          exit 1
+        }
+        
+        # Check if namespace exists
+        $namespaceExists = kubectl get namespace nextgen-academy --ignore-not-found
+        if (-not $namespaceExists) {
+          Write-Host "Creating namespace"
+          kubectl apply -f $namespacePath
+        } else {
+          Write-Host "Namespace already exists, skipping creation"
+        }
+        
+        # Apply Kubernetes resources
+        Write-Host "Applying Kubernetes resources from $kubernetesDirPath"
+        $result = kubectl apply -k $kubernetesDirPath
+        Write-Host $result
+      shell: powershell
+      
     - name: Verify deployment
       run: |
+        Write-Host "Waiting for pods to be ready..."
+        Start-Sleep -Seconds 10
         kubectl get all -n nextgen-academy
+        
+        # Count running pods
+        $runningPods = kubectl get pods -n nextgen-academy -o jsonpath="{.items[?(@.status.phase=='Running')].metadata.name}" | Measure-Object -Word | Select-Object -ExpandProperty Words
+        Write-Host "Running pods: $runningPods"
+        
+        # Show services
+        Write-Host "Available services:"
+        kubectl get services -n nextgen-academy
+        
+        # Get frontend service URL
+        Write-Host "Frontend URL:"
+        minikube service frontend -n nextgen-academy --url
       shell: powershell 

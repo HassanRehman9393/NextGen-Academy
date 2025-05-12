@@ -1,46 +1,39 @@
-# GitHub Actions Workflow Setup
+# GitHub Actions Local Kubernetes Deployment
 
-This directory contains GitHub Actions workflow configuration for CI/CD deployment to a local Kubernetes cluster.
+This simplified workflow deploys your application to a local Kubernetes (Minikube) cluster.
 
-## Setting Up the Self-Hosted Runner
+## Prerequisites
 
-1. Go to your GitHub repository, click on Settings > Actions > Runners
-2. Click on "New self-hosted runner"
-3. Follow the instructions to download and configure the runner on your local machine where Minikube is running
+Before running this workflow, ensure:
 
-## Setting Up Required Secrets
+1. Your self-hosted runner is properly set up
+2. Docker is installed and running on your machine
+3. Minikube is installed and started
+4. kubectl is installed and configured to use your Minikube cluster
 
-Before the workflow can run successfully, add the following secrets to your GitHub repository:
+## How to Use This Workflow
 
-1. Go to Settings > Secrets and variables > Actions
-2. Click on "New repository secret"
-3. Add the following secrets:
-   - `DOCKER_USERNAME`: Your Docker Hub username
-   - `DOCKER_PASSWORD`: Your Docker Hub password or access token
+1. **Start Minikube**: Make sure Minikube is running:
+   ```
+   minikube start
+   ```
 
-## Workflow Overview
+2. **Start the self-hosted runner**: Make sure your GitHub Actions runner is online.
 
-The `deploy.yml` workflow performs the following steps:
+3. **Run the workflow**: Go to Actions tab in your GitHub repository and run the workflow manually.
 
-1. Checks out the repository code
-2. Sets up Docker Buildx for multi-platform builds
-3. Logs in to Docker Hub using the provided secrets
-4. Builds and pushes the backend Docker image
-5. Builds and pushes the frontend Docker image
-6. Updates the Kubernetes deployment files with your Docker Hub username
-7. Deploys the application to your local Kubernetes cluster
-8. Verifies the deployment status
+4. **Troubleshooting**:
+   - Check that all tools (Docker, kubectl, Minikube) are in your PATH
+   - Make sure Minikube is running when you start the workflow
+   - Review logs for any error messages
 
-## Triggering the Workflow
+## What This Workflow Does
 
-The workflow can be triggered in two ways:
-- Automatically when code is pushed to the `main` branch
-- Manually through the "Actions" tab in your GitHub repository (workflow_dispatch)
+1. **Checks prerequisites**: Verifies Docker, kubectl, and Minikube are installed
+2. **Updates deployment files**: Replaces `${DOCKER_USERNAME}` placeholder in deployment YAML files
+3. **Deploys to Kubernetes**: Applies the Kubernetes manifests to your local Minikube cluster
+4. **Verifies deployment**: Shows running pods and services
 
-## Troubleshooting
+## Note
 
-If the workflow fails, check the following:
-- Ensure your self-hosted runner is online and connected
-- Verify that your Docker Hub credentials are correct
-- Make sure Minikube is running on the machine where the self-hosted runner is installed
-- Check that kubectl is properly configured to use your Minikube cluster 
+This workflow is optimized for local Kubernetes deployment only. It doesn't build or push Docker images to Docker Hub, so make sure your Kubernetes manifests are configured to use the correct images. 
