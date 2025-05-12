@@ -1,267 +1,55 @@
-name: Build and Deploy to Kubernetes
+name: Deploy to Kubernetes
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: self-hosted
     
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v3
-    
-    - name: Check Docker status
-      run: |
-        try {
-          $dockerStatus = docker version 2>&1
-          Write-Host "Docker is running correctly"
-        } catch {
-          Write-Host "Error checking Docker status: $_"
-          exit 1
-        }
-      shell: powershell
-        
+      
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-      timeout-minutes: 10
-      with:
-        install: true
-    
-    - name: Debug Docker Hub credentials
-      run: |
-        Write-Host "Debugging Docker Hub credentials..."
-        Write-Host "Username length: $($env:DOCKER_USERNAME.Length)"
-        Write-Host "First character of username: $($env:DOCKER_USERNAME[0])"
-        Write-Host "Last character of username: $($env:DOCKER_USERNAME[-1])"
-        Write-Host "Token/Password length: $($env:DOCKER_PASSWORD.Length)"
-        
-        # Test Docker configuration
-        docker info
-        
-        # Clear any existing Docker credentials
-        docker logout
-        
-        # Verify Docker daemon is responsive
-        if (-not (docker ps 2>&1)) {
-            Write-Host "::error::Docker daemon is not responding"
-            exit 1
-        }
-      shell: powershell
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
+      
     - name: Login to Docker Hub
-      uses: docker/login-action@v3
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Build and push Frontend image
+        
+    - name: Build and push backend image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-backend:latest
+        
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/nextgen-academy-frontend:latest
+        
+    - name: Update deployment files
       run: |
-        $maxRetries = 3
-        $retryCount = 0
-        $success = $false
+        cd kubernetes
+        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" backend-deployment.yaml
+        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" frontend-deployment.yaml
+      shell: bash
         
-        while (-not $success -and $retryCount -lt $maxRetries) {
-          try {
-            Write-Host "Building frontend image..."
-            docker build -t $env:DOCKER_USERNAME/nextgen-frontend:latest ./frontend
-            
-            Write-Host "Pushing frontend image to Docker Hub..."
-            docker push $env:DOCKER_USERNAME/nextgen-frontend:latest
-            
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully built and pushed frontend image"
-              $success = $true
-            } else {
-              Write-Host "Command failed with exit code: $LASTEXITCODE"
-              $retryCount++
-              if ($retryCount -lt $maxRetries) {
-                Write-Host "Waiting 10 seconds before retrying..."
-                Start-Sleep -Seconds 10
-              }
-            }
-          } catch {
-            Write-Host "Error during frontend image build/push: $_"
-            $retryCount++
-            if ($retryCount -lt $maxRetries) {
-              Write-Host "Waiting 10 seconds before retrying..."
-              Start-Sleep -Seconds 10
-            }
-          }
-        }
-
-        if (-not $success) {
-          Write-Host "Failed to build/push frontend image after $maxRetries attempts."
-          exit 1
-        }
-      shell: powershell
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    
-    - name: Build and push Backend image
-      run: |
-        $maxRetries = 3
-        $retryCount = 0
-        $success = $false
-        
-        while (-not $success -and $retryCount -lt $maxRetries) {
-          try {
-            Write-Host "Building backend image..."
-            docker build -t $env:DOCKER_USERNAME/nextgen-backend:latest ./backend
-            
-            Write-Host "Pushing backend image to Docker Hub..."
-            docker push $env:DOCKER_USERNAME/nextgen-backend:latest
-            
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully built and pushed backend image"
-              $success = $true
-            } else {
-              Write-Host "Command failed with exit code: $LASTEXITCODE"
-              $retryCount++
-              if ($retryCount -lt $maxRetries) {
-                Write-Host "Waiting 10 seconds before retrying..."
-                Start-Sleep -Seconds 10
-              }
-            }
-          } catch {
-            Write-Host "Error during backend image build/push: $_"
-            $retryCount++
-            if ($retryCount -lt $maxRetries) {
-              Write-Host "Waiting 10 seconds before retrying..."
-              Start-Sleep -Seconds 10
-            }
-          }
-        }
-
-        if (-not $success) {
-          Write-Host "Failed to build/push backend image after $maxRetries attempts."
-          exit 1
-        }
-      shell: powershell
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    
-    - name: Update Kubernetes manifests with Docker Hub username
-      run: |
-        Write-Host "Current Docker Username: ${{ secrets.DOCKER_USERNAME }}"
-        $files = @("./kubernetes/frontend-deployment.yaml", "./kubernetes/backend-deployment.yaml")
-        foreach ($file in $files) {
-          Write-Host "Processing file: $file"
-          Get-Content $file | Select-String -Pattern "image:"
-        }
-        
-        # Verify image names are properly formatted
-        Write-Host "Verifying image names in deployment files..."
-        $errors = $false
-        
-        foreach ($file in $files) {
-          $content = Get-Content $file
-          $containsPlaceholder = $content | Where-Object { $_ -match '(\$\{[^}]+\}|\{\{[^}]+\}\})' }
-          
-          if ($containsPlaceholder) {
-            Write-Host "::warning::File $file contains unresolved variables: $containsPlaceholder"
-            $errors = $true
-          } else {
-            Write-Host "File $file looks good."
-          }
-        }
-        
-        if ($errors) {
-          Write-Host "::error::Deployment files contain unresolved variables. Please fix them manually."
-          exit 1
-        } else {
-          Write-Host "All image references look correctly formatted."
-        }
-      shell: powershell
-      
-    - name: Ensure Minikube is running
-      run: |
-        $status = minikube status | Out-String
-        if ($status -match "Stopped|Nonexistent") {
-          Write-Host "Starting Minikube with appropriate resources..."
-          minikube start --cpus 2 --memory 3000
-        } else {
-          Write-Host "Minikube is already running"
-        }
-        
-        # Ensure kubectl can connect
-        minikube update-context
-        kubectl get nodes
-      shell: powershell
-    
     - name: Deploy to Kubernetes
       run: |
-        # Create the namespace if it doesnt exist
-        kubectl apply -f ./kubernetes/namespace.yaml
+        kubectl apply -f kubernetes/namespace.yaml
+        kubectl apply -k kubernetes/
+      shell: bash
         
-        # Validate YAML files before applying
-        Write-Host "Validating Kubernetes YAML files..."
-        
-        Write-Host "Checking backend-deployment.yaml syntax:"
-        kubectl apply --dry-run=client -f ./kubernetes/backend-deployment.yaml
-        if ($LASTEXITCODE -ne 0) {
-          Write-Host "Error in backend-deployment.yaml. Please fix YAML syntax."
-          exit 1
-        }
-        
-        Write-Host "Checking frontend-deployment.yaml syntax:"
-        kubectl apply --dry-run=client -f ./kubernetes/frontend-deployment.yaml
-        if ($LASTEXITCODE -ne 0) {
-          Write-Host "Error in frontend-deployment.yaml. Please fix YAML syntax."
-          exit 1
-        }
-        
-        Write-Host "Checking mongodb-deployment.yaml syntax:"
-        kubectl apply --dry-run=client -f ./kubernetes/mongodb-deployment.yaml
-        if ($LASTEXITCODE -ne 0) {
-          Write-Host "Error in mongodb-deployment.yaml. Please fix YAML syntax."
-          exit 1
-        }
-        
-        # Apply MongoDB deployment and service
-        Write-Host "Applying MongoDB deployment and service..."
-        kubectl apply -f ./kubernetes/mongodb-deployment.yaml
-        kubectl apply -f ./kubernetes/mongodb-service.yaml
-        
-        # Apply backend deployment and service
-        Write-Host "Applying backend deployment and service..."
-        kubectl apply -f ./kubernetes/backend-deployment.yaml
-        kubectl apply -f ./kubernetes/backend-service.yaml
-        
-        Write-Host "Applying frontend deployment and service..."  
-        kubectl apply -f ./kubernetes/frontend-deployment.yaml
-        kubectl apply -f ./kubernetes/frontend-service.yaml
-        
-        # Wait for deployments to be ready
-        Write-Host "Waiting for backend deployment to be ready..."
-        kubectl rollout status deployment/nextgen-backend -n nextgen-academy --timeout=300s
-        
-        Write-Host "Waiting for frontend deployment to be ready..."
-        kubectl rollout status deployment/nextgen-frontend -n nextgen-academy --timeout=300s
-        
-        Write-Host "Waiting for MongoDB deployment to be ready..."
-        kubectl rollout status deployment/mongodb -n nextgen-academy --timeout=300s
-      shell: powershell
-    
     - name: Verify deployment
       run: |
-        Write-Host "Checking pods status..."
-        kubectl get pods -n nextgen-academy
-        
-        Write-Host "Checking services..."
-        kubectl get services -n nextgen-academy
-        
-        Write-Host "Getting Frontend service URL..."
-        minikube service nextgen-frontend-service -n nextgen-academy --url
-        
-        Write-Host "Getting Backend service URL..."
-        minikube service nextgen-backend-service -n nextgen-academy --url
-        
-        Write-Host "Deployment completed successfully!"
-      shell: powershell
+        kubectl get all -n nextgen-academy
+      shell: bash 

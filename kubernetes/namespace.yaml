@@ -3,6 +3,4 @@ kind: Namespace
 metadata:
   name: nextgen-academy
   labels:
-    name: nextgen-academy
-    app: nextgen-academy
-    environment: development
+    name: nextgen-academy 

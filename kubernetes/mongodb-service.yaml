@@ -5,11 +5,10 @@ metadata:
   namespace: nextgen-academy
   labels:
     app: mongodb
-    tier: database
 spec:
-  type: ClusterIP
   ports:
   - port: 27017
     targetPort: 27017
+    protocol: TCP
   selector:
-    app: mongodb
+    app: mongodb 

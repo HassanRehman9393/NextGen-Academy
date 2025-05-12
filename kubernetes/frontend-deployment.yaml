@@ -1,52 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nextgen-frontend
+  name: frontend
   namespace: nextgen-academy
   labels:
-    app: nextgen-frontend
-    tier: frontend
+    app: frontend
 spec:
-  # Modified to use 1 replica for Minikube resource constraints
   replicas: 1
   selector:
     matchLabels:
-      app: nextgen-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: nextgen-frontend
+        app: frontend
     spec:
       containers:
-      - name: nextgen-frontend
-        image: hassangill/nextgen-academy-frontend:latest
+      - name: frontend
+        image: ${DOCKER_USERNAME}/nextgen-academy-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
         env:
         - name: REACT_APP_API_URL
-          # Point to the backend service within the Kubernetes cluster
-          value: http://nextgen-backend-service:8080/api        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
+          value: "http://backend:8080/api"
+        resources:
           limits:
-            memory: "256Mi"
             cpu: "300m"
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 15
-          periodSeconds: 5
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 20
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
+            memory: "384Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi" 
