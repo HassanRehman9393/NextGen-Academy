@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: hassangill/nextgen-academy-backend:latest
+        image: ${DOCKER_USERNAME}/nextgen-academy-backend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
