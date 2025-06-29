@@ -17,13 +17,13 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ${DOCKER_USERNAME}/nextgen-academy-frontend:latest
+        image: hassangill/nextgen-academy-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
         env:
         - name: REACT_APP_API_URL
-          value: "http://backend:8080/api"
+          value: "http://localhost:8081/api"
         resources:
           limits:
             cpu: "300m"
