@@ -4,8 +4,6 @@ This workflow deploys your application to a local Kubernetes (Minikube) cluster.
 
 ## Prerequisites
 
-Before running this workflow, ensure:
-
 1. Your self-hosted runner is properly set up
 2. Docker is installed and running on your machine
 3. Minikube is installed and started
